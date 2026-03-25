@@ -30,11 +30,32 @@ Runs entirely client-side. No backend. No server. No database. 17 distinct mathe
 
 ## Quick Start
 
-**Requirements:** An Anthropic API key. A browser.
+### Easiest Way — Use as a Claude Artifact (No Installation Required)
+
+> This is the recommended way for most people. No npm, no Vite, no local setup needed.
+
+1. Open any Claude chat
+2. Copy the entire contents of `ARCHITECT.jsx`
+3. Paste it and say: **"Create a new React artifact from this code"**
+4. Once the artifact appears, click to open it — the full coherence harness UI loads instantly
+5. Paste your Anthropic API key in the UI field and start chatting
+
+The harness runs 100% in Claude's sandbox. Pipe corrections, SDE bands, Kalman filter, signal detection — all live inside the artifact.
+
+---
+
+### Alternative — Run as a Local React App
+
+> ⚠ **API Key Required**  
+> This tool calls the Anthropic API directly from your browser. You need your own Anthropic API key entered in the UI field.  
+> Get one at [console.anthropic.com](https://console.anthropic.com)  
+>  
+> **For production/shared deployment:** change `API_ENDPOINT` at the top of `ARCHITECT.jsx` to `/api/claude` and route through a backend proxy.  
+> **For personal/local use:** entering your key directly in the UI is fine.
 
 1. Download `ARCHITECT.jsx`
 2. Drop it into a React project (Vite recommended) with `recharts` installed
-3. Enter your API key in the UI
+3. Enter your Anthropic API key in the UI field
 4. Start chatting — the harness activates automatically
 
 ```bash
