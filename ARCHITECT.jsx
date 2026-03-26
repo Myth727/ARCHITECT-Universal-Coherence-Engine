@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Scatter
@@ -6,90 +6,14 @@ import {
 
 // ═══════════════════════════════════════════════════════════════
 //  FILE: ARCHITECT.jsx  ← upload to GitHub with this exact name (all caps)
-//  HUDSON & PERRY'S DRIFT LAW — ARCHITECT · V1.5.2
+//  HUDSON & PERRY'S DRIFT LAW — ARCHITECT · V1.5.7
 //  © Hudson & Perry Research
-//  Authors: David Hudson (@RaccoonStampede)
-//           David Perry (@Prosperous727)
+//  Authors: David Hudson (@RaccoonStampede) · David Perry (@Prosperous727)
 //
 //  ⚠ RESEARCH & DEVELOPMENT — NOT FOR CLINICAL OR LEGAL USE
-//  This tool is experimental. All outputs are proxy indicators.
-//  No warranty expressed or implied. Use at your own discretion.
+//  All outputs are experimental proxy indicators only. No warranty.
 //
-//  V1.5.2 patches (applied in order — do not revert individually):
-//    P1:  Version strings unified — export block, guide, framework all V1.5.2
-//    P2:  Config save dep array — nPaths/postAuditMode/customMutePhrases/
-//         researchNotes were missing, silently not persisting on change
-//    P3:  corrections persistence — loaded from hpdl_data but never saved back
-//    P4:  Rewind index bug — turnSnapshots[clickedTurn-1] broke after turn 20.
-//         Fixed to .find(s=>s.turn===n) — works at any turn number
-//    P5:  Bookmarks now save immediately on toggle — was only on next send
-//    P6:  rewindConfirm cleared in resumeLive — stale dialog could linger
-//    P7:  Post-audit now scores against finalMessages (includes new reply).
-//         Previously used same inputs as rawScore so delta was always ~0
-//         and quietFail never fired. Now genuinely measures second perspective.
-//    P8:  finalDriftCount moved before meta-harness block — single source of
-//         truth. meta-harness now uses finalDriftCount directly.
-//    P9:  deleteTurn variance now uses updateSmoothedVariance (GARCH blend)
-//         instead of raw population variance — prevents discontinuity in
-//         research exports after any deletion
-//    P10: corrections removed from sendMessage dep array — never read inside
-//         sendMessage, only in UI render. Was causing unnecessary invalidation.
-//    P11: HC_MASS_LOSS aliased to KAPPA — was hardcoded 0.444 literal,
-//         now single source of truth
-//    P12: Dead pruneThreshold/pruneKeep state documented — setters never
-//         called, actual pruning uses cfg.pruneThreshold from preset
-//    P13: chartData wrapped in useMemo — was sorting livePaths on every render
-//    P14: PRECOMPUTED_PATHS performance note added — runs on main thread at load
-//    P15: API key warning won't fire in Claude artifact sandbox (claude.ai)
-//    P16: statusMessage state added — rewind/delete status now uses
-//         setStatusMessage, file errors stay in setFileError
-//
-//  V1.5.2 cleanup (dead code removed, no behaviour change):
-//    • jaccardSimilarity() — defined but never called anywhere. Removed.
-//    • VAR_SMOOTH_ALPHA = 0.9 — declared but never referenced. Removed.
-//    • p50 in sdePercentilesAtStep — computed but never destructured. Removed.
-//    • PRECOMPUTED_PATHS — livePaths useMemo is what the chart uses. Removed.
-//      Wrong comment referencing PRECOMPUTED_PATHS also corrected.
-//    • P12 comment corrected — pruneThreshold/pruneKeep ARE wired to sliders
-//      but only take effect in CUSTOM mode (preset value overrides via ??)
-//
-//  V1.5.0 additions:
-//    • SDE path knob      — nPaths tunable in TUNE: dropdown 10/25/50/
-//                           100/150/200/250/300/500 + custom input to 1000.
-//                           Default 50 on load (saves tokens). Stored in
-//                           hpdl_config. Warning shown when > 200.
-//    • Post-audit         — second coherence pass after response generation.
-//                           Toggle: Off / Light / Full in TUNE.
-//                           Light: fires only when Kalman x̂ < 0.70.
-//                           Full: every turn.
-//                           Both: recompute rawC (TF-IDF+JSD+length),
-//                           refresh sourceScore if attachments present.
-//                           Delta logged — if post-audit C < live C by > 0.08,
-//                           flagged as quiet fail in eventLog + RESEARCH CSV.
-//    • Token thresholds   — tightened to 40k amber / 70k red (was 50k/80k).
-//    • Mute phrase editor — custom mute phrases editable in TUNE panel.
-//                           Add/remove phrases. Reset to defaults button.
-//                           Stored in hpdl_config.
-//    • Bookmark notes     — annotation field on each bookmark. Click to add
-//                           a note (e.g. "example of topic hijack T7"). Saved
-//                           with bookmark in hpdl_data.
-//    • Health weights     — drift/B-sig/H-sig penalty weights exposed in
-//                           CUSTOM preset config. Tunable per domain.
-//    • Export toggle state — feature toggle state now included in EXPORT
-//                           block so sessions resume with identical config.
-//
-//  V1.5.0 (prior): window.storage two-key split, Research Export CSV,
-//                  Session UUID, token estimate, localStorage→window.storage
-//  V1.4.8 (prior): κ & ANCHOR user-adjustable, R&D disclaimer, legal notice
-//  V1.4.7 (prior): Industry presets, 11 feature toggles, TUNE modal
-//  V1.4.6 (prior): Adaptive sigma EWMA, rate slider
-//  V1.4.5 (prior): LOCK_888 avg C floor, B/H health penalties
-//  V1.4.4 (prior): Bookmarks
-//  V1.4.3 (prior): driftCount decay
-//  V1.4.2 (prior): Error logging, pipe self-awareness
-//  V1.4.1 (prior): Restored missing handleCopyExport
-//  V1.4   (prior): GARCH, JSD, H-sigs, B-sigs, session health, rewind
-//  V1.3   (prior): TF-IDF, mute startsWith, snapshot cap
+//  Full patch history: see CHANGELOG.md
 // ═══════════════════════════════════════════════════════════════
 
 // ── Deployment ─────────────────────────────────────────────────
@@ -133,11 +57,11 @@ const FILE_TYPES = {
   image: {
     extensions: ["png","jpg","jpeg","gif","webp"],
     mimeTypes:  ["image/png","image/jpeg","image/gif","image/webp"],
-    icon:"🖼", color:"#4A9EFF", label:"IMAGE", maxBytes:5*1024*1024,
+    icon:"🖼", color:"#1560B0", label:"IMAGE", maxBytes:5*1024*1024,
   },
   pdf: {
     extensions:["pdf"], mimeTypes:["application/pdf"],
-    icon:"📄", color:"#E05060", label:"PDF", maxBytes:32*1024*1024,
+    icon:"📄", color:"#C81030", label:"PDF", maxBytes:32*1024*1024,
   },
   text: {
     extensions:[
@@ -146,7 +70,7 @@ const FILE_TYPES = {
       "java","rb","go","rs","swift","kt","sql","r","scala","php","vue",
       "svelte","toml","ini",
     ],
-    mimeTypes:[], icon:"📝", color:"#40D080", label:"TEXT", maxBytes:2*1024*1024,
+    mimeTypes:[], icon:"📝", color:"#178040", label:"TEXT", maxBytes:2*1024*1024,
   },
 };
 
@@ -216,10 +140,10 @@ const HC_MASS_LOSS     = KAPPA; // P11: was 0.444 literal — aliased to KAPPA (
 const SDE_PARAMS = {alpha:-0.25,beta_p:0.18,omega:2*Math.PI/12,sigma:0.10,kappa:KAPPA};
 
 const HARNESS_MODES = {
-  audit:    {gamma_h:0.05,   label:"AUDIT",      color:"#C8860A",threshold:1.1 },
-  moderate: {gamma_h:50,     label:"MODERATE",   color:"#E8A030",threshold:0.72},
-  deep:     {gamma_h:5000,   label:"DEEP CLEAN", color:"#1EAAAA",threshold:0.62},
-  extreme:  {gamma_h:10000,  label:"EXTREME",    color:"#E05060",threshold:0.50},
+  audit:    {gamma_h:0.05,   label:"AUDIT",      color:"#906000",threshold:1.1 },
+  moderate: {gamma_h:50,     label:"MODERATE",   color:"#9A5C08",threshold:0.72},
+  deep:     {gamma_h:5000,   label:"DEEP CLEAN", color:"#0A7878",threshold:0.62},
+  extreme:  {gamma_h:10000,  label:"EXTREME",    color:"#C81030",threshold:0.50},
 };
 
 // ── LCG RNG ────────────────────────────────────────────────────
@@ -261,9 +185,11 @@ function kalmanStep(state,obs,t,params,kalR,kalSigP) {
 }
 
 // ── Drift Law ──────────────────────────────────────────────────
-function driftLawCapEff(gamma_h){return EPSILON/(1+gamma_h);}
-function driftLawFloor(n,gamma_h) {
-  const ce=driftLawCapEff(gamma_h),tau=Math.max(.0225/EPSILON,1);
+// V1.5.3 fix #6: epsilon is now a parameter (default EPSILON) so the user-tunable
+// mathEpsilon state can be passed from component context. Pure functions unchanged externally.
+function driftLawCapEff(gamma_h,epsilon=EPSILON){return epsilon/(1+gamma_h);}
+function driftLawFloor(n,gamma_h,epsilon=EPSILON) {
+  const ce=driftLawCapEff(gamma_h,epsilon),tau=Math.max(.0225/epsilon,1);
   const sys=ce*(1-Math.exp(-Math.pow(Math.max(n,.001),ALPHA_S)/tau));
   return sys+Math.abs(BETA_C*Math.sin(gamma_h*n*.01))*.05;
 }
@@ -291,7 +217,7 @@ const GARCH_BETA  = 0.80;
 // ═══════════════════════════════════════════════════════════════
 const PRESETS = {
   DEFAULT: {
-    label:"DEFAULT", color:"#7AB8D8",
+    label:"DEFAULT", color:"#0E2A5A",
     description:"Original Hudson & Perry settings",
     varDecoherence:0.200, varCaution:0.120, varCalm:0.080,
     lock888Streak:5, lock888AvgCFloor:0.72,
@@ -303,7 +229,7 @@ const PRESETS = {
     healthDriftWeight:8, healthBSigWeight:4, healthHSigWeight:6, // penalty per event
   },
   TECHNICAL: {
-    label:"TECHNICAL", color:"#1EAAAA",
+    label:"TECHNICAL", color:"#0A7878",
     description:"Code reviews, audits, engineering — tighter variance tolerance, longer responses allowed",
     varDecoherence:0.180, varCaution:0.100, varCalm:0.060,
     lock888Streak:5, lock888AvgCFloor:0.75,
@@ -315,7 +241,7 @@ const PRESETS = {
     healthDriftWeight:10, healthBSigWeight:3, healthHSigWeight:8,
   },
   CREATIVE: {
-    label:"CREATIVE", color:"#C8860A",
+    label:"CREATIVE", color:"#906000",
     description:"Writing, brainstorming, narrative — looser coherence, less elaboration penalty",
     varDecoherence:0.280, varCaution:0.160, varCalm:0.100,
     lock888Streak:4, lock888AvgCFloor:0.65,
@@ -327,7 +253,7 @@ const PRESETS = {
     healthDriftWeight:5, healthBSigWeight:2, healthHSigWeight:4,
   },
   RESEARCH: {
-    label:"RESEARCH", color:"#8888FF",
+    label:"RESEARCH", color:"#4848B8",
     description:"Academic, long-form analysis — extended context, topic shifts expected",
     varDecoherence:0.220, varCaution:0.130, varCalm:0.085,
     lock888Streak:6, lock888AvgCFloor:0.70,
@@ -339,7 +265,7 @@ const PRESETS = {
     healthDriftWeight:8, healthBSigWeight:5, healthHSigWeight:7,
   },
   MEDICAL: {
-    label:"MEDICAL/LEGAL", color:"#E05060",
+    label:"MEDICAL/LEGAL", color:"#C81030",
     description:"High-stakes domains — tightest settings, most aggressive harness, lowest H-sig tolerance",
     varDecoherence:0.150, varCaution:0.090, varCalm:0.055,
     lock888Streak:6, lock888AvgCFloor:0.80,
@@ -351,7 +277,7 @@ const PRESETS = {
     healthDriftWeight:12, healthBSigWeight:6, healthHSigWeight:10,
   },
   CUSTOM: {
-    label:"CUSTOM", color:"#40D080",
+    label:"CUSTOM", color:"#178040",
     description:"User-defined — edit any parameter below",
     // CUSTOM inherits DEFAULT values as starting point
     varDecoherence:0.200, varCaution:0.120, varCalm:0.080,
@@ -365,7 +291,7 @@ const PRESETS = {
   },
 };
 
-function updateSmoothedVariance(history, prev) {
+function updateSmoothedVariance(history, prev, cfg) {
   if (history.length<2) return prev??0;
   const recent=history.slice(-20);
   const mean=recent.reduce((s,v)=>s+v,0)/recent.length;
@@ -373,7 +299,12 @@ function updateSmoothedVariance(history, prev) {
   if (prev===null) return rawVar;
   const lastVal=history[history.length-1];
   const epsilon2=Math.pow(lastVal-mean,2);
-  const garch=GARCH_OMEGA+GARCH_ALPHA*epsilon2+GARCH_BETA*prev;
+  // V1.5.3 fix #3: use preset GARCH params — previously always used module-level
+  // constants regardless of active preset, making GARCH preset tuning dead config.
+  const gO=cfg?.garchOmega??GARCH_OMEGA;
+  const gA=cfg?.garchAlpha??GARCH_ALPHA;
+  const gB=cfg?.garchBeta??GARCH_BETA;
+  const garch=gO+gA*epsilon2+gB*prev;
   const weight=Math.min(history.length/10,1);
   return weight*garch+(1-weight)*rawVar;
 }
@@ -388,17 +319,28 @@ const STOP_WORDS=new Set(["the","and","for","that","this","with","are","was","we
   "would","could","should","does","did","its","you","your","our","can","all","one",
   "also","more","than","then","just","into","over","after","about","there","these"]);
 
-function buildTfIdf(tokens) {
+// V1.
+function buildTermFreq(tokens) {
   if (!tokens||!tokens.length) return {};
-  const tf={};
-  tokens.forEach(w=>{if(!STOP_WORDS.has(w))tf[w]=(tf[w]||0)+1;});
-  const total=Object.values(tf).reduce((s,v)=>s+v,0)||1;
-  Object.keys(tf).forEach(w=>tf[w]=tf[w]/total);
-  return tf;
+  const freq={};
+  tokens.forEach(w=>{if(!STOP_WORDS.has(w))freq[w]=(freq[w]||0)+1;});
+  const total=Object.values(freq).reduce((s,v)=>s+v,0)||1;
+  const dist={};
+  Object.keys(freq).forEach(w=>dist[w]=freq[w]/total);
+  return dist;
 }
 
+// V1.5.4 fix #9: IDF design documented explicitly.
+// This is a 2-document cosine similarity — the "corpus" is always exactly
+// tokensA and tokensB. IDF = log(2 / df) where df ∈ {1, 2}.
+//   df=1 (term in one doc only):  IDF = log(2) ≈ 0.693  → unique term, weighted
+//   df=2 (term in both docs):     IDF = log(1) = 0       → shared term, zeroed
+// Effect: terms shared by both responses get no weight; only divergent vocabulary
+// drives the score. This is intentional — it measures vocabulary shift rather
+// than overlap. Coherent repetition of key terms will score near 0 on this
+// component (offset by JSD and persistence components in computeCoherence).
 function tfidfSimilarity(tokensA, tokensB) {
-  const tfA=buildTfIdf(tokensA), tfB=buildTfIdf(tokensB);
+  const tfA=buildTermFreq(tokensA), tfB=buildTermFreq(tokensB);
   const allTerms=new Set([...Object.keys(tfA),...Object.keys(tfB)]);
   if (!allTerms.size) return 1;
   let dot=0,normA=0,normB=0;
@@ -413,18 +355,8 @@ function tfidfSimilarity(tokensA, tokensB) {
 }
 
 // ── Jensen-Shannon Divergence ──────────────────────────────────
-function buildTermFreqDist(tokens) {
-  if (!tokens||!tokens.length) return {};
-  const freq={};
-  tokens.forEach(w=>{if(!STOP_WORDS.has(w))freq[w]=(freq[w]||0)+1;});
-  const total=Object.values(freq).reduce((s,v)=>s+v,0)||1;
-  const dist={};
-  Object.keys(freq).forEach(w=>dist[w]=freq[w]/total);
-  return dist;
-}
-
 function jensenShannonDivergence(tokensA, tokensB) {
-  const pA=buildTermFreqDist(tokensA), pB=buildTermFreqDist(tokensB);
+  const pA=buildTermFreq(tokensA), pB=buildTermFreq(tokensB);
   const allTerms=new Set([...Object.keys(pA),...Object.keys(pB)]);
   if (!allTerms.size) return 0;
   const M={};
@@ -478,14 +410,19 @@ function computeCoherence(newContent,history,weights,repThresh) {
 //  MUTE MODE
 // ═══════════════════════════════════════════════════════════════
 function detectMuteMode(text, phrases) {
-  if (!USE_MUTE_MODE||!text||text.length<8) return false;
+  // No USE_MUTE_MODE guard — call sites gate with featMute so the module
+  // constant (boot default only) never silently re-enables detection.
+  if (!text||text.length<8) return false;
   const lower = text.toLowerCase().trimStart();
   return (phrases??MUTE_PHRASES).some(phrase => lower.startsWith(phrase));
 }
 
 function buildMuteInjection(cfg) {
   const cap=cfg?.muteMaxTokens??MUTE_MAX_TOKENS;
-  return `\n\n[MUTE_MODE ACTIVE]\nRespond in ${cap/8|0} words or fewer. ` +
+  // V1.5.4 fix #14: was cap/8|0 which gave ~15 words for 120-token budget.
+  // Standard approximation is ~0.75 words/token → 120 tokens ≈ 90 words.
+  const wordLimit=Math.round(cap*0.75);
+  return `\n\n[MUTE_MODE ACTIVE]\nRespond in ${wordLimit} words or fewer. ` +
     `One direct answer. No elaboration, no follow-up steps unless explicitly asked.`;
 }
 
@@ -496,7 +433,8 @@ function buildDriftGateInjection(smoothedVar,cfg) {
   const caution=cfg?.varCaution??VAR_CAUTION;
   const decohere=cfg?.varDecoherence??VAR_DECOHERENCE;
   const wordLim=cfg?.driftGateWordLimit??DRIFT_GATE_WORD_LIMIT;
-  if (!USE_DRIFT_GATE||smoothedVar===null||smoothedVar<=caution) return "";
+  // No USE_DRIFT_GATE guard — featGate at the call site is the live gate.
+  if (smoothedVar===null||smoothedVar<=caution) return "";
   const severity=smoothedVar>decohere?"CRITICAL":"ELEVATED";
   return `\n\n[DRIFT_GATE — Variance ${severity}: σ²=${smoothedVar.toFixed(4)}]\n` +
     `Hard limit: respond in ${wordLim} words or fewer. ` +
@@ -507,7 +445,8 @@ function buildDriftGateInjection(smoothedVar,cfg) {
 //  PIPING ENGINE
 // ═══════════════════════════════════════════════════════════════
 function buildPipeInjection(smoothedVar,kalmanX,kalmanP,calmStreak,driftCount,harnessMode,turn,hSignalCount,bSignalCount,adaptedSig) {
-  if (!USE_PIPING||turn<2) return "";
+  // No USE_PIPING guard — featPipe at the call site is the live gate.
+  if (turn<2) return "";
   const varState=smoothedVar>VAR_DECOHERENCE?"DECOHERENCE"
     :smoothedVar>VAR_CAUTION?"CAUTION"
     :smoothedVar<VAR_CALM?"CALM":"NOMINAL";
@@ -741,7 +680,7 @@ function downloadSdePaths(livePaths, coherenceData, sessionId, nPaths, userKappa
 
 // ── System prompt ──────────────────────────────────────────────
 const BASE_SYSTEM =
-  `You are a highly precise technical assistant operating within Hudson & Perry's Drift Law ARCHITECT V1.5.2 coherence framework. `+
+  `You are a highly precise technical assistant operating within Hudson & Perry's Drift Law ARCHITECT V1.5.7 coherence framework. `+
   `Maintain strict logical consistency across all turns. Reference prior context explicitly when building on it. `+
   `When files are attached, analyze them thoroughly. `+
   `When RAG MEMORY is provided, treat it as recalled context. `+
@@ -770,7 +709,7 @@ function buildExportBlock(s) {
          featKalman,featGARCH,featSDE,featRAG,featPipe,featMute,
          featGate,featBSig,featHSig,featPrune,featZeroDrift,
          nPaths,postAuditMode}=s;
-  const mode=HARNESS_MODES[harnessMode],cap_eff=driftLawCapEff(mode.gamma_h);
+  const mode=HARNESS_MODES[harnessMode],cap_eff=driftLawCapEff(mode.gamma_h); // export block uses module EPSILON — no user state here
   const liveDamp=1/(1+(userKappa??KAPPA));
   const anchor=userAnchor??RESONANCE_ANCHOR;
   const lock=applyZeroDriftLock(anchor-(lastScore??0)*.01,anchor);
@@ -780,18 +719,18 @@ function buildExportBlock(s) {
     :"  (empty)";
   const kappaNote=(userKappa??KAPPA)!==KAPPA?` ⚠ MODIFIED from 0.444`:"";
   const anchorNote=(userAnchor??RESONANCE_ANCHOR)!==RESONANCE_ANCHOR?` ⚠ MODIFIED from 623.81`:"";
-  return `START_MISSION_PROTOCOL: HUDSON_PERRY_DRIFT_ARCHITECT_V1.5.2
+  return `START_MISSION_PROTOCOL: HUDSON_PERRY_DRIFT_ARCHITECT_V1.5.7
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Hudson & Perry's Drift Law — ARCHITECT V1.5.2
+Hudson & Perry's Drift Law — ARCHITECT V1.5.7
 © Hudson & Perry Research
 ⚠ R&D ONLY — Proxy indicators, no warranty
 
-1. FEATURES ACTIVE
+1. FEATURES ACTIVE (boot defaults — live state in 1b below)
 Profile:${activePreset??'DEFAULT'} | RAG:${USE_RAG} | Pipe:${USE_PIPING}
 MuteMode:${USE_MUTE_MODE} | DriftGate:${USE_DRIFT_GATE}
 Prune:>${PRUNE_THRESHOLD}msg→top ${PRUNE_KEEP}
 
-1b. FEATURE TOGGLES (live)
+1b. FEATURE TOGGLES (live — these govern actual runtime behaviour)
 Kalman:${s.featKalman??true} | GARCH:${s.featGARCH??true} | SDE:${s.featSDE??true}
 RAG:${s.featRAG??true} | Pipe:${s.featPipe??true} | Mute:${s.featMute??true}
 Gate:${s.featGate??true} | BSig:${s.featBSig??true} | HSig:${s.featHSig??true}
@@ -824,19 +763,64 @@ All constants locked.
 END_MISSION_PROTOCOL`;
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  THEME — V1.5.6 light/daytime palette
+//  All module-level components and the S styles object read from here.
+//  Swap bgRoot↔bgDark etc. to toggle between light and dark modes.
+// ═══════════════════════════════════════════════════════════════
+const THEME = {
+  bgRoot:       "#F0F4FA",
+  bgPanel:      "#FFFFFF",
+  bgCard:       "#F4F7FB",
+  bgInput:      "#EEF2F7",
+  bgSunken:     "#E6ECF4",
+  bgWarn:       "#FFF8EE",
+  bgError:      "#FFF1F3",
+  bgSuccess:    "#EEFBF4",
+  bgRewind:     "#E6F4EC",
+  bgHSig:       "#FFF4E8",
+  bgBSig:       "#F0EFFF",
+  border:       "#B0C4DA",
+  borderLight:  "#C8D8EC",
+  borderFaint:  "#D8E4F0",
+  borderAccent: "#7AAAC8",
+  // Text — darkened throughout for light-theme readability
+  textPrimary:  "#0E1C2A",  // near-black body text
+  textSecond:   "#162840",  // dark secondary
+  textMid:      "#1E3C5C",  // mid-weight labels
+  textDim:      "#2E5070",  // secondary labels
+  textFaint:    "#2E5070",  // tertiary labels (was far too pale)
+  textTiny:     "#1E3C5C",  // smallest labels
+  teal:         "#0A7878",
+  green:        "#178040",
+  red:          "#C81030",
+  orange:       "#9A5C08",
+  purple:       "#4848B8",
+  blue:         "#1560B0",
+  gold:         "#906000",
+  userBubble:   "#E8F0F8",
+  userBubbleBorder:"#8AAECE",
+  userText:     "#0E1C2A",
+  asstBubble:   "#F6F8FC",
+  asstBubbleBorder:"#B8CCE0",
+  asstText:     "#0E1C2A",
+  driftBubble:  "#FEF0F2",
+  driftBorder:  "#C8103055",
+};
+
 // ── Tooltip ────────────────────────────────────────────────────
 function CoherenceTooltip({active,payload,label}) {
   if (!active||!payload?.length) return null;
   return (
-    <div style={{background:"#0A1020",border:"1px solid #1E4060",padding:"10px 14px",
-      borderRadius:6,fontSize:11,fontFamily:"Courier New, monospace",color:"#A8C4E0"}}>
-      <div style={{color:"#7AB8D8",marginBottom:4}}>Turn {label}</div>
+    <div style={{background:"#EEF2F7",border:"1px solid #A8C8E0",padding:"10px 14px",
+      borderRadius:6,fontSize:11,fontFamily:"Courier New, monospace",color:"#0E1C2A"}}>
+      <div style={{color:"#0E2A5A",marginBottom:4}}>Turn {label}</div>
       {payload.map((p,i)=>(
-        <div key={i} style={{color:p.color||"#A8C4E0"}}>
+        <div key={i} style={{color:p.color||"#0E1C2A"}}>
           {p.name}: {typeof p.value==="number"?p.value.toFixed(4):p.value}
         </div>
       ))}
-      <div style={{marginTop:4,fontFamily:"Courier New, monospace",fontSize:9,color:"#1EAAAA"}}>
+      <div style={{marginTop:4,fontFamily:"Courier New, monospace",fontSize:9,color:"#0A7878"}}>
         Click to rewind to this turn
       </div>
     </div>
@@ -854,9 +838,9 @@ function FileChip({att,onRemove}) {
         :<span style={{fontSize:12}}>{cfg.icon}</span>}
       <span style={{fontFamily:"Courier New, monospace",fontSize:9,color:cfg.color,
         flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{att.name}</span>
-      <span style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#3A5870",marginRight:2}}>{cfg.label}</span>
+      <span style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#2E5070",marginRight:2}}>{cfg.label}</span>
       <button onClick={()=>onRemove(att.id)} style={{background:"none",border:"none",cursor:"pointer",
-        color:"#4A6880",fontSize:14,padding:0,lineHeight:1,minWidth:20,minHeight:20,
+        color:"#1E3C5C",fontSize:14,padding:0,lineHeight:1,minWidth:20,minHeight:20,
         display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
     </div>
   );
@@ -1037,7 +1021,7 @@ function computeSessionHealth(coherenceData, driftCount, smoothedVar, calmStreak
 const FRAMEWORK_CONTENT=`HUDSON & PERRY'S DRIFT LAW
 TIME-VARYING ERROR DYNAMICS & AI COHERENCE HARNESS
 Authors: David Hudson (@RaccoonStampede) & David Perry (@Prosperous727)
-Version 3.2  |  V1.5.2  |  © 2026
+Version 3.2  |  V1.5.7  |  © 2026
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1413,11 +1397,1227 @@ HEALTH PENALTY WEIGHTS (TUNE → CUSTOM → Health weights)
 𝕏 @Prosperous727 (David Perry)`;
 
 // ═══════════════════════════════════════════════════════════════
-//  MAIN COMPONENT
+//  MODAL SUB-COMPONENTS (V1.5.6 — extracted from main render)
+//  Each receives only the props it needs. React.memo prevents
+//  re-renders when unrelated state changes in the main component.
+//  State management stays in HudsonPerryDriftV1 — no restructure needed.
 // ═══════════════════════════════════════════════════════════════
+// ── ExportContentModal ──────────────────────────────────────────────
+const ExportContentModal = React.memo(function ExportContentModal({exportContent,setExportContent,exportCopied,setExportCopied}) {
+  if (!exportContent) return null;
+  return (
+  <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
+    background:"rgba(30,50,80,0.55)",zIndex:2001,display:"flex",
+    alignItems:"center",justifyContent:"center",padding:16}}
+    onClick={()=>{setExportContent(null);setExportCopied(false);}}>
+    <div style={{background:"#FFFFFF",border:"1px solid #A8C8E0",
+      borderRadius:8,maxWidth:740,width:"100%",maxHeight:"88vh",
+      display:"flex",flexDirection:"column",overflow:"hidden"}}
+      onClick={e=>e.stopPropagation()}>
+      <div style={{display:"flex",justifyContent:"space-between",
+        alignItems:"center",padding:"12px 18px",
+        borderBottom:"1px solid #1A3050",background:"#FAFCFF",flexShrink:0}}>
+        <span style={{fontFamily:"Courier New, monospace",fontSize:10,
+          color:"#0E2A5A",letterSpacing:2,fontWeight:"bold"}}>
+          {exportContent.title}
+        </span>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <button onClick={()=>{
+            navigator.clipboard.writeText(exportContent.text).then(()=>{
+              setExportCopied(true);
+              setTimeout(()=>setExportCopied(false),2500);
+            });
+          }} style={{padding:"5px 16px",
+            background:exportCopied?"#E8F4EC":"transparent",
+            border:`1px solid ${exportCopied?"#178040":"#1EAAAA44"}`,
+            borderRadius:4,color:exportCopied?"#178040":"#0A7878",
+            cursor:"pointer",fontSize:9,fontFamily:"Courier New, monospace",
+            letterSpacing:1,transition:"all .2s"}}>
+            {exportCopied?"✓ COPIED":"COPY ALL"}
+          </button>
+          <button onClick={()=>{setExportContent(null);setExportCopied(false);}}
+            style={{background:"none",border:"1px solid #2A4060",borderRadius:4,
+              color:"#1E3C5C",cursor:"pointer",fontSize:13,padding:"2px 10px",
+              fontFamily:"Courier New, monospace"}}>✕</button>
+        </div>
+      </div>
+      <div style={{overflowY:"auto",flex:1,padding:"14px 18px"}}>
+        <pre style={{fontFamily:"Courier New, monospace",fontSize:8,
+          color:"#0E1C2A",lineHeight:1.75,margin:0,
+          whiteSpace:"pre-wrap",wordBreak:"break-word"}}>
+          {exportContent.text}
+        </pre>
+      </div>
+      <div style={{padding:"7px 18px",borderTop:"1px solid #1A3050",
+        background:"#FAFCFF",flexShrink:0,
+        display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontFamily:"Courier New, monospace",fontSize:7,color:"#2E5070"}}>
+          {exportContent.filename}
+        </span>
+        <span style={{fontFamily:"Courier New, monospace",fontSize:7,color:"#2E5070"}}>
+          EXPERIMENTAL DATA — PROXY ONLY
+        </span>
+      </div>
+    </div>
+  </div>
+  );
+});
+
+// ── DisclaimerModal ──────────────────────────────────────────────
+const DisclaimerModal = React.memo(function DisclaimerModal({showDisclaimer,setShowDisclaimer,setShowGuide}) {
+  if (!showDisclaimer) return null;
+  return (
+  <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
+    background:"rgba(30,50,80,0.70)",zIndex:2000,display:"flex",
+    alignItems:"center",justifyContent:"center",padding:16}}>
+    <div style={{background:"#FFFFFF",border:"2px solid #9A5C08",
+      borderRadius:8,maxWidth:620,width:"100%",maxHeight:"90vh",
+      display:"flex",flexDirection:"column",overflow:"hidden"}}>
+
+      {/* Title */}
+      <div style={{padding:"14px 20px",borderBottom:"1px solid #2A1A00",
+        background:"#FAFCFF",flexShrink:0}}>
+        <div style={{fontFamily:"Courier New, monospace",fontSize:12,
+          color:"#9A5C08",letterSpacing:2,fontWeight:"bold",marginBottom:2}}>
+          ⚠ RESEARCH &amp; DEVELOPMENT TOOL — IMPORTANT NOTICE
+        </div>
+        <div style={{fontFamily:"Courier New, monospace",fontSize:8,
+          color:"#4A6060",letterSpacing:1}}>
+          HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.7 · READ IN FULL BEFORE PROCEEDING
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{overflowY:"auto",flex:1,padding:"16px 20px",
+        fontFamily:"Courier New, monospace",fontSize:8,lineHeight:1.9}}>
+
+        {[
+          ["1. EXPERIMENTAL STATUS",
+           "#9A5C08",
+           "This software is an experimental research tool in active development. It has not been peer-reviewed, independently audited, clinically validated, or verified against any external dataset. No version of this tool should be considered production-ready, certified, or fit for regulated use."],
+
+          ["2. PROXY INDICATORS — NOT MEASUREMENTS",
+           "#9A5C08",
+           "All outputs produced by this tool — including coherence scores, session health scores, hallucination signals, behavioral signals, variance states, Kalman estimates, SDE bands, and Zero-Drift Lock status — are mathematical proxy indicators derived from text analysis heuristics. They do not constitute measurements, assessments, diagnoses, evaluations, or determinations of any kind. They may be inaccurate, misleading, or entirely wrong."],
+
+          ["3. NO CLINICAL, LEGAL, OR SAFETY USE",
+           "#C81030",
+           "Outputs from this tool must not be used — directly or indirectly — to inform medical, psychological, clinical, legal, financial, safety-critical, regulatory, or compliance decisions. This prohibition applies regardless of the context in which the tool is deployed or the nature of the AI being monitored."],
+
+          ["4. NO WARRANTY",
+           "#C81030",
+           "THIS SOFTWARE IS PROVIDED \"AS IS\" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, ACCURACY, OR NON-INFRINGEMENT. THE AUTHORS MAKE NO REPRESENTATIONS REGARDING THE CORRECTNESS OR RELIABILITY OF ANY OUTPUT."],
+
+          ["5. LIMITATION OF LIABILITY",
+           "#C81030",
+           "To the maximum extent permitted by applicable law, Hudson & Perry Research, David Hudson, and David Perry shall not be liable for any direct, indirect, incidental, special, consequential, or exemplary damages arising from the use of, or inability to use, this tool or its outputs. This includes but is not limited to damages from reliance on proxy signals, modified constants, experimental configurations, or any decision made based on tool outputs."],
+
+          ["6. MODIFIED CONSTANTS",
+           "#9A5C08",
+           "This tool allows adjustment of foundational constants (κ and RESONANCE_ANCHOR). Results generated with non-default values operate outside the published Hudson & Perry framework and carry no validation basis whatsoever. The authors accept no responsibility for outputs produced under modified-constant configurations."],
+
+          ["7. NOT LEGAL OR PROFESSIONAL ADVICE",
+           "#9A5C08",
+           "Nothing in this tool or its outputs constitutes legal, medical, financial, psychological, or any other form of professional advice. Users requiring such advice should consult a qualified licensed professional."],
+
+          ["8. DATA & PRIVACY",
+           "#1560B0",
+           "Conversation data processed by this tool is transmitted to Anthropic's API under your own API key and is subject to Anthropic's terms of service and privacy policy. This tool does not independently store, log, or transmit conversation content beyond your active browser session. API keys entered are session-only and are never written to persistent storage."],
+
+          ["9. ACCEPTANCE OF RISK",
+           "#9A5C08",
+           "By proceeding past this notice, you acknowledge that you have read and understood these terms, that you accept full responsibility for how you use this tool and interpret its outputs, and that you hold Hudson & Perry Research, David Hudson, and David Perry harmless from any claim arising from your use of this software."],
+        ].map(([title,col,body])=>(
+          <div key={title} style={{marginBottom:12,paddingBottom:10,
+            borderBottom:"1px solid #0E1820"}}>
+            <div style={{color:col,letterSpacing:1,marginBottom:4,
+              fontWeight:"bold"}}>{title}</div>
+            <div style={{color:"#162840",lineHeight:1.8}}>{body}</div>
+          </div>
+        ))}
+
+        <div style={{marginTop:8,padding:"8px 12px",background:"#FFF1F2",
+          borderRadius:4,border:"1px solid #E0506033",
+          color:"#A06060",fontSize:7,lineHeight:1.7}}>
+          © 2026 Hudson &amp; Perry Research. All rights reserved.
+          Contact: 𝕏 @RaccoonStampede · 𝕏 @Prosperous727.
+          This notice does not constitute legal advice. Consult a qualified
+          attorney regarding your specific obligations and liability exposure.
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{padding:"12px 20px",borderTop:"1px solid #2A1A00",
+        background:"#FAFCFF",flexShrink:0,
+        display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontFamily:"Courier New, monospace",fontSize:7,
+          color:"#2E5070",lineHeight:1.5}}>
+          Proceeding confirms you have read and accepted all terms above.
+        </span>
+        <button onClick={()=>setShowDisclaimer(false)}
+          style={{padding:"10px 24px",background:"#F0FFEE",
+            border:"2px solid #9A5C08",borderRadius:4,color:"#9A5C08",
+            cursor:"pointer",fontSize:10,fontFamily:"Courier New, monospace",
+            letterSpacing:1,fontWeight:"bold",flexShrink:0,marginLeft:16}}
+          onClick={()=>{setShowDisclaimer(false);setShowGuide(true);}}>
+          I ACCEPT — READ THE GUIDE FIRST
+        </button>
+      </div>
+    </div>
+  </div>
+  );
+});
+
+// ── TuneModal ──────────────────────────────────────────────
+const TuneModal = React.memo(function TuneModal({showTuning,setShowTuning,activePreset,setActivePreset,customConfig,setCustomConfig,userKappa,setUserKappa,userAnchor,setUserAnchor,featKalman,setFeatKalman,featGARCH,setFeatGARCH,featSDE,setFeatSDE,featRAG,setFeatRAG,featPipe,setFeatPipe,featMute,setFeatMute,featGate,setFeatGate,featBSig,setFeatBSig,featHSig,setFeatHSig,featPrune,setFeatPrune,featZeroDrift,setFeatZeroDrift,nPaths,setNPaths,postAuditMode,setPostAuditMode,postAuditThresh,setPostAuditThresh,adaptiveSigmaOn,setAdaptiveSigmaOn,adaptedSigma,adaptationRate,setAdaptationRate,sdeAlphaVal,setSdeAlphaVal,sdeBetaVal,setSdeBetaVal,sdeSigmaVal,setSdeSigmaVal,sdeAlphaOn,setSdeAlphaOn,sdeBetaOn,setSdeBetaOn,sdeSigmaOn,setSdeSigmaOn,customMutePhrases,setCustomMutePhrases,mutePhraseInput,setMutePhraseInput,mathEpsilon,setMathEpsilon,mathTfidf,setMathTfidf,mathJsd,setMathJsd,mathLen,setMathLen,mathStruct,setMathStruct,mathPersist,setMathPersist,mathRepThresh,setMathRepThresh,mathKalmanR,setMathKalmanR,mathKalmanSigP,setMathKalmanSigP,mathRagTopK,setMathRagTopK,mathMaxTokens,setMathMaxTokens,tuneTab,setTuneTab,pruneThreshold,setPruneThreshold,pruneKeep,setPruneKeep,showParams,setShowParams}) {
+  if (!showTuning) return null;
+  return (
+  <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
+    background:"rgba(30,50,80,0.55)",zIndex:1000,display:"flex",
+    alignItems:"center",justifyContent:"center",padding:16}}
+    onClick={()=>setShowTuning(false)}>
+    <div style={{background:"#FFFFFF",border:"1px solid #A8C8E0",
+      borderRadius:8,maxWidth:740,width:"100%",maxHeight:"90vh",
+      display:"flex",flexDirection:"column",overflow:"hidden"}}
+      onClick={e=>e.stopPropagation()}>
+
+      {/* Header */}
+      <div style={{display:"flex",justifyContent:"space-between",
+        alignItems:"center",padding:"12px 18px",
+        borderBottom:"1px solid #1A3050",background:"#FAFCFF",flexShrink:0}}>
+        <span style={{fontFamily:"Courier New, monospace",fontSize:11,
+          color:"#178040",letterSpacing:2,fontWeight:"bold"}}>
+          TUNE · {PRESETS[activePreset]?.label??activePreset}
+        </span>
+        <button onClick={()=>setShowTuning(false)}
+          style={{background:"none",border:"1px solid #2A4060",borderRadius:4,
+            color:"#1E3C5C",cursor:"pointer",fontSize:12,padding:"2px 10px",
+            fontFamily:"Courier New, monospace"}}>✕ CLOSE</button>
+      </div>
+
+      {/* TUNE TAB BAR */}
+      <div style={{display:"flex",borderBottom:"1px solid #1A3050",background:"#FAFCFF",flexShrink:0}}>
+        {[["presets","PRESETS","#178040"],["features","FEATURES","#1560B0"],
+          ["math","MATH","#0A7878"],
+          ["display","DISPLAY","#906000"],
+        ].map(([tab,label,col])=>(
+          <button key={tab} onClick={()=>setTuneTab(tab)} style={{
+            flex:1,padding:"8px 2px",background:"none",cursor:"pointer",
+            fontFamily:"Courier New,monospace",fontSize:8,letterSpacing:1,
+            border:"none",borderBottom:`2px solid ${tuneTab===tab?col:"transparent"}`,
+            color:tuneTab===tab?col:"#2E5070",transition:"color .15s"}}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{overflowY:"auto",flex:1,padding:"14px 18px"}}>
+
+        {/* ── Preset selector ── */}
+        <div style={{marginBottom:16,display:tuneTab==="presets"?"block":"none"}}>
+          <div style={{fontFamily:"Courier New, monospace",fontSize:9,
+            color:"#1E3C5C",letterSpacing:3,marginBottom:8}}>SELECT PROFILE</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {Object.entries(PRESETS).map(([key,p])=>(
+              <button key={key} onClick={()=>{
+                setActivePreset(key);
+                if (key!=="CUSTOM") setCustomConfig({...p});
+              }} style={{padding:"6px 12px",borderRadius:4,cursor:"pointer",
+                fontFamily:"Courier New, monospace",fontSize:9,letterSpacing:1,
+                border:`1px solid ${key===activePreset?p.color:"#C0D0E4"}`,
+                background:key===activePreset?`${p.color}18`:"transparent",
+                color:key===activePreset?p.color:"#2E5070",transition:"all .15s"}}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <div style={{fontFamily:"Courier New, monospace",fontSize:8,
+            color:"#2E5070",marginTop:6}}>
+            {PRESETS[activePreset]?.description}
+          </div>
+        </div>
+
+        {/* ── Feature toggles ── */}
+        <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="features"?"block":"none"}}>
+          <div style={{fontFamily:"Courier New, monospace",fontSize:9,
+            color:"#1E3C5C",letterSpacing:3,marginBottom:8}}>
+            FEATURE TOGGLES · κ=0.444 &amp; RESONANCE_ANCHOR ALWAYS ON
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+            {[
+              ["Kalman Filter",       featKalman,    setFeatKalman,    "#0A7878","Without: raw score used directly"],
+              ["GARCH Variance",      featGARCH,     setFeatGARCH,     "#9A5C08","Without: simple window variance"],
+              ["SDE Drift Bands",     featSDE,       setFeatSDE,       "#1560B0","Without: drift threshold = 0.45"],
+              ["RAG Memory",          featRAG,       setFeatRAG,       "#4848B8","Without: no context retrieval"],
+              ["Pipe Injection",      featPipe,      setFeatPipe,      "#0A7878","Without: no telemetry in prompt"],
+              ["Mute Mode",           featMute,      setFeatMute,      "#9A5C08","Without: no token cap on planning phrases"],
+              ["Drift Gate",          featGate,      setFeatGate,      "#C81030","Without: no word limit on high variance"],
+              ["B-Signal Detection",  featBSig,      setFeatBSig,      "#4848B8","Without: behavioral flags suppressed"],
+              ["H-Signal Detection",  featHSig,      setFeatHSig,      "#9A5C08","Without: hallucination flags suppressed"],
+              ["Context Pruning",     featPrune,     setFeatPrune,     "#178040","Without: full context always sent"],
+              ["Zero-Drift Display",  featZeroDrift, setFeatZeroDrift, "#906000","Without: lock panel hidden"],
+            ].map(([label,val,setter,col,note])=>(
+              <div key={label} style={{display:"flex",alignItems:"center",gap:8,
+                padding:"6px 10px",borderRadius:4,
+                background:val?"#EEF8F2":"#F4F4F8",
+                border:`1px solid ${val?col+"44":"#CDD8E8"}`}}>
+                <button onClick={()=>setter(p=>!p)} style={{
+                  width:28,height:16,borderRadius:8,border:"none",cursor:"pointer",
+                  background:val?col:"#B4C4D4",transition:"background .2s",flexShrink:0}}>
+                  <div style={{width:12,height:12,borderRadius:"50%",background:"#fff",
+                    margin:"2px",marginLeft:val?14:2,transition:"margin .2s"}}/>
+                </button>
+                <div>
+                  <div style={{fontFamily:"Courier New, monospace",fontSize:8,
+                    color:val?col:"#2E5070",letterSpacing:1}}>{label}</div>
+                  <div style={{fontFamily:"Courier New, monospace",fontSize:7,
+                    color:"#607080",lineHeight:1.3}}>{note}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Hudson Constants — adjustable with disclaimer ── */}
+        <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="features"?"block":"none"}}>
+          <div style={{fontFamily:"Courier New, monospace",fontSize:9,
+            color:"#9A5C08",letterSpacing:3,marginBottom:8}}>
+            HUDSON CONSTANTS — ADVANCED
+          </div>
+          <div style={{fontFamily:"Courier New, monospace",fontSize:8,
+            color:"#9A5C08",marginBottom:10,padding:"6px 10px",
+            background:"#FFF8EE",borderRadius:3,border:"1px solid #E8A03044",
+            lineHeight:1.7}}>
+            ⚠ These are the framework identity constants. Changing them alters
+            the mathematical foundation of the Drift Law. Results with modified
+            values are not validated and may not reflect the published framework.
+            This tool is in R&amp;D — all outputs are proxy indicators only.
+            No warranty. Use for experimental testing only.
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            {[
+              ["κ (kappa)","0.444 — Hudson Constant. Drives damping, SDE, Kalman.",
+               userKappa,setUserKappa,0.10,2.00,0.001,KAPPA],
+              ["RESONANCE_ANCHOR","623.81 Hz — Zero-Drift Lock target frequency.",
+               userAnchor,setUserAnchor,100,2000,0.01,RESONANCE_ANCHOR],
+            ].map(([label,note,val,setter,min,max,step,def])=>(
+              <div key={label} style={{padding:"8px 10px",borderRadius:4,
+                background:val!==def?"#FFF8EE":"#F2F4F8",
+                border:`1px solid ${val!==def?"#E8A03044":"#C8D8EC"}`}}>
+                <div style={{fontFamily:"Courier New, monospace",fontSize:8,
+                  color:val!==def?"#9A5C08":"#1E3C5C",marginBottom:4,letterSpacing:1}}>
+                  {label}{val!==def?" ⚠ MODIFIED":""}
+                </div>
+                <div style={{fontFamily:"Courier New, monospace",fontSize:7,
+                  color:"#607080",marginBottom:6,lineHeight:1.4}}>{note}</div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <input type="number" min={min} max={max} step={step}
+                    value={val}
+                    onChange={e=>setter(+e.target.value)}
+                    style={{flex:1,background:"#EEF2F7",border:`1px solid ${val!==def?"#E8A03066":"#C0D0E4"}`,
+                      borderRadius:3,color:val!==def?"#9A5C08":"#0E2A5A",
+                      padding:"3px 8px",fontFamily:"Courier New, monospace",fontSize:10}}/>
+                  <button onClick={()=>setter(def)}
+                    style={{padding:"3px 8px",background:"transparent",
+                      border:"1px solid #2A4060",borderRadius:3,color:"#1E3C5C",
+                      cursor:"pointer",fontSize:7,fontFamily:"Courier New, monospace"}}>
+                    RESET
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {activePreset==="CUSTOM"&&(
+          <div style={{borderTop:"1px solid #1A3050",paddingTop:12,display:tuneTab==="presets"?"block":"none"}}>
+            <div style={{display:"flex",justifyContent:"space-between",
+              alignItems:"center",marginBottom:10}}>
+              <div style={{fontFamily:"Courier New, monospace",fontSize:9,
+                color:"#178040",letterSpacing:3}}>CUSTOM PARAMETERS</div>
+              <button onClick={()=>setCustomConfig({...PRESETS.DEFAULT})}
+                style={{padding:"3px 10px",background:"transparent",
+                  border:"1px solid #2A4060",borderRadius:3,color:"#1E3C5C",
+                  cursor:"pointer",fontSize:8,fontFamily:"Courier New, monospace"}}>
+                RESET TO DEFAULT
+              </button>
+            </div>
+            <div style={{fontFamily:"Courier New, monospace",fontSize:7,
+              color:"#C81030",marginBottom:10,padding:"4px 8px",
+              background:"#FFF0F2",borderRadius:3,border:"1px solid #E0506033"}}>
+              ⚠ κ=0.444 (Hudson Constant) and RESONANCE_ANCHOR=623.81 are not
+              editable here. They are the framework identity.
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {[
+                ["Var Decoherence",    "varDecoherence",    0.05,  0.50,  0.005],
+                ["Var Caution",        "varCaution",        0.03,  0.30,  0.005],
+                ["Var Calm",           "varCalm",           0.02,  0.15,  0.005],
+                ["LOCK_888 Streak",    "lock888Streak",     2,     10,    1    ],
+                ["LOCK_888 Avg C Floor","lock888AvgCFloor", 0.40,  0.95,  0.01 ],
+                ["Gate Word Limit",    "driftGateWordLimit",40,    500,   10   ],
+                ["Mute Max Tokens",    "muteMaxTokens",     40,    500,   10   ],
+                ["GARCH ω",            "garchOmega",        0.001, 0.10,  0.001],
+                ["GARCH α",            "garchAlpha",        0.01,  0.50,  0.01 ],
+                ["GARCH β",            "garchBeta",         0.30,  0.98,  0.01 ],
+                ["SDE α",              "sdeAlpha",         -0.80,  -0.05, 0.01 ],
+                ["SDE β_p",            "sdeBetaP",          0.05,  0.50,  0.01 ],
+                ["SDE σ",              "sdeSigma",          0.03,  0.40,  0.005],
+                ["Prune Threshold",    "pruneThreshold",    3,     20,    1    ],
+                ["Prune Keep",         "pruneKeep",         2,     10,    1    ],
+                ["Escalate→Moderate",  "driftEscalateMod",  1,     10,    1    ],
+                ["Escalate→Deep",      "driftEscalateDeep", 2,     15,    1    ],
+                ["Escalate→Extreme",   "driftEscalateExtreme",3,   20,    1    ],
+                ["Health: Drift -wt",   "healthDriftWeight",    1,   20,    1    ],
+                ["Health: B-Sig -wt",   "healthBSigWeight",     1,   15,    1    ],
+                ["Health: H-Sig -wt",   "healthHSigWeight",     1,   15,    1    ],
+              ].map(([label,key,min,max,step])=>(
+                <div key={key} style={{display:"flex",alignItems:"center",
+                  justifyContent:"space-between",gap:8,
+                  padding:"4px 0",borderBottom:"1px solid #0E1820"}}>
+                  <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+                    color:"#1E3C5C",flex:1}}>{label}</span>
+                  <input type="number" min={min} max={max} step={step}
+                    value={customConfig[key]??0}
+                    onChange={e=>setCustomConfig(p=>({...p,[key]:+e.target.value}))}
+                    style={{width:72,background:"#EEF2F7",border:"1px solid #C0D0E4",
+                      borderRadius:3,color:"#178040",padding:"2px 6px",
+                      fontFamily:"Courier New, monospace",fontSize:9,textAlign:"right"}}/>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── V1.5.0: SDE Path Count ── */}
+        <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="features"?"block":"none"}}>
+          <div style={{fontFamily:"Courier New, monospace",fontSize:9,
+            color:"#1E3C5C",letterSpacing:3,marginBottom:8}}>SDE SIMULATION PATHS</div>
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+            <select value={nPaths} onChange={e=>{
+              const v=+e.target.value;
+              if(v===-1) return; // custom handled below
+              setNPaths(v);
+            }} style={{background:"#EEF2F7",border:"1px solid #C0D0E4",
+              borderRadius:3,color:"#0E2A5A",padding:"4px 8px",
+              fontFamily:"Courier New, monospace",fontSize:9}}>
+              {[5,10,20,25,50,100,200,250,300,500].map(n=>(
+                <option key={n} value={n}>{n} paths{n===50?" (default)":n===300?" (original)":""}</option>
+              ))}
+            </select>
+            <input type="number" min="1" max="1000"
+              value={nPaths} onChange={e=>{
+                const v=Math.max(1,Math.min(1000,+e.target.value));
+                if(v>500){
+                  // warn about token burn
+                }
+                setNPaths(v);
+              }}
+              style={{width:72,background:"#EEF2F7",border:`1px solid ${nPaths>500?"#E0506066":"#C0D0E4"}`,
+                borderRadius:3,color:nPaths>500?"#C81030":"#0E2A5A",padding:"3px 6px",
+                fontFamily:"Courier New, monospace",fontSize:9,textAlign:"center"}}/>
+            <span style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#2E5070"}}>
+              manual (1–1000)
+            </span>
+          </div>
+          {nPaths>500&&(
+            <div style={{fontFamily:"Courier New, monospace",fontSize:8,
+              color:"#C81030",marginTop:6,padding:"4px 8px",
+              background:"#FFF0F2",borderRadius:3,border:"1px solid #E0506033"}}>
+              ⚠ {nPaths} paths will significantly increase token usage and compute time per turn.
+              Above 300 gives diminishing returns on band accuracy.
+              Recommended max for daily use: 200.
+            </div>
+          )}
+          {nPaths>200&&nPaths<=500&&(
+            <div style={{fontFamily:"Courier New, monospace",fontSize:8,
+              color:"#9A5C08",marginTop:4}}>
+              △ High path count — expect slower chart updates and higher token usage.
+            </div>
+          )}
+          <div style={{fontFamily:"Courier New, monospace",fontSize:7,
+            color:"#2E5070",marginTop:4}}>
+            Default 50. More paths = sharper SDE bands. Stored across sessions.
+          </div>
+        </div>
+
+        {/* ── SDE Parameter Controls ── */}
+        <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="features"?"block":"none"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#1E3C5C",letterSpacing:3}}>SDE PARAMETERS</div>
+            <button onClick={()=>{setSdeAlphaVal(SDE_PARAMS.alpha);setSdeBetaVal(SDE_PARAMS.beta_p);setSdeSigmaVal(SDE_PARAMS.sigma);setSdeAlphaOn(true);setSdeBetaOn(true);setSdeSigmaOn(true);}}
+              style={{padding:"2px 8px",background:"transparent",border:"1px solid #2A4060",
+                borderRadius:3,color:"#1E3C5C",cursor:"pointer",fontSize:7,fontFamily:"Courier New, monospace"}}>RESET</button>
+          </div>
+          <div style={{fontFamily:"Courier New, monospace",fontSize:7,color:"#C81030",
+            marginBottom:8,padding:"3px 8px",background:"#FFF0F2",borderRadius:3,border:"1px solid #E0506033"}}>
+            κ=0.444 locked. ω=2π/12 locked. α, β_p, σ are tunable.
+          </div>
+          {[
+            ["α (mean-revert)", sdeAlphaVal, setSdeAlphaVal, sdeAlphaOn, setSdeAlphaOn, -0.80,-0.05,0.01,"#C81030"],
+            ["β_p (forcing)",   sdeBetaVal,  setSdeBetaVal,  sdeBetaOn,  setSdeBetaOn,  0.01, 0.60, 0.01,"#9A5C08"],
+            ["σ (diffusion)",   sdeSigmaVal, setSdeSigmaVal, sdeSigmaOn, setSdeSigmaOn, 0.01, 0.50, 0.005,"#1560B0"],
+          ].map(([label,val,setter,on,setOn,min,max,step,col])=>(
+            <div key={label} style={{display:"flex",alignItems:"center",gap:8,
+              padding:"6px 8px",borderRadius:4,marginBottom:4,
+              background:on?"#F2F4F8":"#F4F7FB",border:`1px solid ${on?col+"44":"#CDD8E8"}`}}>
+              <button onClick={()=>setOn(p=>!p)} style={{
+                width:28,height:16,borderRadius:8,border:"none",cursor:"pointer",
+                background:on?col:"#B4C4D4",transition:"background .2s",flexShrink:0}}>
+                <div style={{width:12,height:12,borderRadius:"50%",background:"#fff",
+                  margin:"2px",marginLeft:on?14:2,transition:"margin .2s"}}/>
+              </button>
+              <span style={{fontFamily:"Courier New, monospace",fontSize:8,color:on?col:"#2E5070",flex:1}}>{label}</span>
+              <input type="number" min={min} max={max} step={step} value={val}
+                onChange={e=>setter(+e.target.value)} disabled={!on}
+                style={{width:64,background:"#FAFCFF",border:`1px solid ${on?col+"66":"#CDD8E8"}`,
+                  borderRadius:3,color:on?col:"#B4C4D4",padding:"2px 5px",
+                  fontFamily:"Courier New, monospace",fontSize:9,textAlign:"right"}}/>
+            </div>
+          ))}
+        </div>
+
+        {/* ── V1.5.0: Post-Audit Toggle ── */}
+        <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="features"?"block":"none"}}>
+          <div style={{fontFamily:"Courier New, monospace",fontSize:9,
+            color:"#1E3C5C",letterSpacing:3,marginBottom:8}}>POST-AUDIT</div>
+          <div style={{display:"flex",gap:6}}>
+            {[
+              ["off",    "OFF",    "#2E5070","No second pass"],
+              ["light",  "LIGHT",  "#9A5C08","Kalman < 0.70"],
+              ["custom", "CUSTOM", "#906000","Custom threshold"],
+              ["full",   "FULL",   "#0A7878","Every turn"],
+            ].map(([val,label,col,desc])=>(
+              <button key={val} onClick={()=>setPostAuditMode(val)} style={{
+                padding:"5px 12px",borderRadius:4,cursor:"pointer",
+                fontFamily:"Courier New, monospace",fontSize:8,letterSpacing:1,
+                border:`1px solid ${postAuditMode===val?col:"#C0D0E4"}`,
+                background:postAuditMode===val?`${col}18`:"transparent",
+                color:postAuditMode===val?col:"#2E5070",transition:"all .15s"}}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {postAuditMode==="custom"&&(
+            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:8}}>
+              <span style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#906000"}}>
+                Fire when Kalman x&#x302; &lt;
+              </span>
+              <input type="number" min="0.30" max="0.95" step="0.01"
+                value={postAuditThresh}
+                onChange={e=>setPostAuditThresh(+e.target.value)}
+                style={{width:60,background:"#EEF2F7",border:"1px solid #90600088",
+                  borderRadius:3,color:"#906000",padding:"3px 6px",
+                  fontFamily:"Courier New, monospace",fontSize:10,textAlign:"center"}}/>
+              <span style={{fontFamily:"Courier New, monospace",fontSize:7,color:"#2E5070"}}>
+                (default 0.70)
+              </span>
+            </div>
+          )}
+          <div style={{fontFamily:"Courier New, monospace",fontSize:7,
+            color:"#2E5070",marginTop:5,lineHeight:1.6}}>
+            Recomputes coherence on final response. Logs delta vs live score.
+            Quiet fail = post-audit C drops &gt;0.08 below live C.
+            Light/Custom ~5% tokens. Full ~10%.
+          </div>
+        </div>
+
+        {/* ── V1.5.0: Mute Phrase Editor ── */}
+        <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="features"?"block":"none"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div style={{fontFamily:"Courier New, monospace",fontSize:9,
+              color:"#1E3C5C",letterSpacing:3}}>MUTE PHRASES</div>
+            <button onClick={()=>setCustomMutePhrases(null)}
+              style={{padding:"2px 8px",background:"transparent",
+                border:"1px solid #2A4060",borderRadius:3,color:"#1E3C5C",
+                cursor:"pointer",fontSize:7,fontFamily:"Courier New, monospace"}}>
+              RESET TO DEFAULT
+            </button>
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:8}}>
+            {(customMutePhrases??MUTE_PHRASES).map((phrase,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:3,
+                padding:"2px 8px",borderRadius:3,
+                background:"#EEF2F7",border:"1px solid #C0D0E4"}}>
+                <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+                  color:"#1560B0"}}>{phrase.trim()}</span>
+                <button onClick={()=>{
+                  const cur=customMutePhrases??MUTE_PHRASES;
+                  setCustomMutePhrases(cur.filter((_,j)=>j!==i));
+                }} style={{background:"none",border:"none",cursor:"pointer",
+                  color:"#2E5070",fontSize:10,padding:0,lineHeight:1}}>✕</button>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:6}}>
+            <input value={mutePhraseInput}
+              onChange={e=>setMutePhraseInput(e.target.value)}
+              onKeyDown={e=>{
+                if(e.key==="Enter"&&mutePhraseInput.trim()){
+                  const cur=customMutePhrases??MUTE_PHRASES;
+                  setCustomMutePhrases([...cur,mutePhraseInput.toLowerCase().trimEnd()+" "]);
+                  setMutePhraseInput("");
+                }
+              }}
+              placeholder="add phrase (press Enter)"
+              style={{flex:1,background:"#EEF2F7",border:"1px solid #C0D0E4",
+                borderRadius:3,color:"#0E2A5A",padding:"3px 8px",
+                fontFamily:"Courier New, monospace",fontSize:9,outline:"none"}}/>
+            <button onClick={()=>{
+              if(!mutePhraseInput.trim()) return;
+              const cur=customMutePhrases??MUTE_PHRASES;
+              setCustomMutePhrases([...cur,mutePhraseInput.toLowerCase().trimEnd()+" "]);
+              setMutePhraseInput("");
+            }} style={{padding:"3px 10px",background:"#EEF2F7",
+              border:"1px solid #4A9EFF44",borderRadius:3,color:"#1560B0",
+              cursor:"pointer",fontSize:8,fontFamily:"Courier New, monospace"}}>
+              ADD
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── MATH TAB — editable math tunables ── */}
+      <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="math"?"block":"none"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <div style={{fontFamily:"Courier New,monospace",fontSize:9,color:"#0A7878",letterSpacing:3}}>
+            MATH TUNABLES
+          </div>
+          <button onClick={()=>{
+            setMathEpsilon(EPSILON);
+            setMathTfidf(0.25);setMathJsd(0.25);setMathLen(0.25);
+            setMathStruct(0.15);setMathPersist(0.10);setMathRepThresh(0.65);
+            setMathKalmanR(KALMAN_R);setMathKalmanSigP(KALMAN_SIGMA_P);
+            setMathRagTopK(RAG_TOP_K);setMathMaxTokens(NORMAL_MAX_TOKENS);
+          }} style={{padding:"2px 8px",background:"transparent",
+            border:"1px solid #2A4060",borderRadius:3,color:"#1E3C5C",
+            cursor:"pointer",fontSize:7,fontFamily:"Courier New,monospace"}}>
+            RESET ALL
+          </button>
+        </div>
+        <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#9A5C08",
+          marginBottom:10,padding:"4px 8px",background:"#FFF8EE",borderRadius:3,
+          border:"1px solid #E8A03033",lineHeight:1.6}}>
+          Coherence weights should sum to 1.0. Changes apply immediately to next turn.
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+          {[
+            // V1.
+            ["ε ghost tax floor",mathEpsilon,  setMathEpsilon,  0.01,0.20, 0.005,"#906000",EPSILON],
+            ["TF-IDF weight",   mathTfidf,    setMathTfidf,    0.01,0.80, 0.01, "#0A7878",0.25],
+            ["JSD weight",      mathJsd,      setMathJsd,      0.01,0.80, 0.01, "#0A7878",0.25],
+            ["Length weight",   mathLen,      setMathLen,      0.01,0.80, 0.01, "#0A7878",0.25],
+            ["Structure wt",    mathStruct,   setMathStruct,   0.01,0.50, 0.01, "#0A7878",0.15],
+            ["Persistence wt",  mathPersist,  setMathPersist,  0.01,0.50, 0.01, "#0A7878",0.10],
+            ["Rep threshold",   mathRepThresh,setMathRepThresh, 0.30,0.95,0.01, "#9A5C08",0.65],
+            ["Kalman R",        mathKalmanR,  setMathKalmanR,  0.001,0.20,0.001,"#1560B0",KALMAN_R],
+            ["Kalman σP",       mathKalmanSigP,setMathKalmanSigP,0.01,0.30,0.005,"#1560B0",KALMAN_SIGMA_P],
+            ["RAG top-K",       mathRagTopK,  setMathRagTopK,  1,10,  1,    "#4848B8",RAG_TOP_K],
+            ["Max tokens",      mathMaxTokens,setMathMaxTokens,200,4000,100, "#178040",NORMAL_MAX_TOKENS],
+          ].map(([label,val,setter,min,max,step,col,def])=>(
+            <div key={label} style={{padding:"5px 8px",borderRadius:4,
+              background:"#F2F4F8",border:"1px solid #1A2840"}}>
+              <div style={{fontFamily:"Courier New,monospace",fontSize:7,
+                color:"#1E3C5C",marginBottom:4}}>{label}</div>
+              <div style={{display:"flex",alignItems:"center",gap:4}}>
+                <input type="number" min={min} max={max} step={step}
+                  value={val}
+                  onChange={e=>setter(+e.target.value)}
+                  style={{flex:1,background:"#FAFCFF",border:`1px solid ${col}44`,
+                    borderRadius:3,color:col,padding:"2px 5px",
+                    fontFamily:"Courier New,monospace",fontSize:9,textAlign:"right"}}/>
+                <button onClick={()=>setter(def)} title={`Reset to default (${def})`}
+                  style={{padding:"1px 5px",background:"transparent",
+                    border:"1px solid #1A2840",borderRadius:2,
+                    color:"#2E5070",cursor:"pointer",fontSize:7,
+                    fontFamily:"Courier New,monospace"}}>↺</button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{fontFamily:"Courier New,monospace",fontSize:7,
+          color:"#2E5070",marginTop:8,lineHeight:1.6}}>
+          ε ghost tax floor: tunable above (default {EPSILON}). Affects cap_eff and drift floor bands.<br/>
+          Mute max tokens: {MUTE_MAX_TOKENS} (set per preset in PRESETS tab)
+        </div>
+      </div>
+
+      {/* ── DISPLAY TAB ── */}
+      <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="display"?"block":"none"}}>
+        <div style={{fontFamily:"Courier New,monospace",fontSize:9,color:"#906000",letterSpacing:3,marginBottom:12}}>
+          DISPLAY
+        </div>
+        <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#2E5070",marginBottom:16,lineHeight:1.6,
+          padding:"6px 10px",background:"#EEF2F7",borderRadius:3,border:"1px solid #C0D0E4"}}>
+          Theme toggle and sidebar resize coming in a future build.
+          Framework is dark-mode first by design — 623.81 Hz resonance
+          anchor is optimized for low-light reading environments.
+        </div>
+        <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#2E5070",lineHeight:1.8}}>
+          Current layout: 55% chat · 45% metrics<br/>
+          Font: Trebuchet MS (body) · Courier New (data)<br/>
+          Background: #06090F · Accent: #1EAAAA<br/>
+          κ color: #C8860A · Health green: #40D080
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{padding:"8px 18px",borderTop:"1px solid #1A3050",
+        background:"#FAFCFF",flexShrink:0,
+        display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+          color:"#2E5070",letterSpacing:1}}>
+          ACTIVE: {PRESETS[activePreset]?.label??activePreset} · κ={userKappa.toFixed(4)} · V1.5.7
+        </span>
+        <button onClick={()=>setShowTuning(false)}
+          style={{padding:"4px 14px",background:"#EEF8F2",
+            border:"1px solid #40D08044",borderRadius:4,color:"#178040",
+            cursor:"pointer",fontSize:9,fontFamily:"Courier New, monospace"}}>
+          APPLY &amp; CLOSE
+        </button>
+      </div>
+    </div>
+  </div>
+  );
+});
+
+// ── RewindConfirmModal ──────────────────────────────────────────────
+const RewindConfirmModal = React.memo(function RewindConfirmModal({rewindConfirm,setRewindConfirm,restoreToTurn}) {
+  if (!rewindConfirm) return null;
+  return (
+  <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
+    background:"rgba(30,50,80,0.45)",zIndex:900,display:"flex",
+    alignItems:"center",justifyContent:"center",padding:16}}
+    onClick={()=>setRewindConfirm(null)}>
+    <div style={{background:"#FFFFFF",border:"2px solid #178040",
+      borderRadius:8,padding:24,maxWidth:320,width:"100%",textAlign:"center"}}
+      onClick={e=>e.stopPropagation()}>
+      <div style={{fontFamily:"Courier New, monospace",fontSize:12,
+        color:"#178040",letterSpacing:2,marginBottom:12}}>
+        ⟲ REWIND TO TURN {rewindConfirm}?
+      </div>
+      <div style={{fontFamily:"Courier New, monospace",fontSize:9,
+        color:"#1E3C5C",marginBottom:20,lineHeight:1.7}}>
+        Session will restore to the state after Turn {rewindConfirm}.
+        You can continue from here or navigate forward with the arrow buttons.
+      </div>
+      <div style={{display:"flex",gap:12,justifyContent:"center"}}>
+        <button onClick={()=>restoreToTurn(rewindConfirm)}
+          style={{padding:"10px 24px",background:"#E8F4EC",
+            border:"2px solid #178040",borderRadius:6,color:"#178040",
+            cursor:"pointer",fontSize:12,fontFamily:"Courier New, monospace",
+            fontWeight:"bold",letterSpacing:1}}>
+          CONFIRM
+        </button>
+        <button onClick={()=>setRewindConfirm(null)}
+          style={{padding:"10px 24px",background:"transparent",
+            border:"1px solid #2A4060",borderRadius:6,color:"#1E3C5C",
+            cursor:"pointer",fontSize:12,fontFamily:"Courier New, monospace",
+            letterSpacing:1}}>
+          CANCEL
+        </button>
+      </div>
+    </div>
+  </div>
+  );
+});
+
+// ── LogModal ──────────────────────────────────────────────
+const LogModal = React.memo(function LogModal({showLog,setShowLog,eventLog,errorLog,sessionId,setExportContent,corrections}) {
+  if (!showLog) return null;
+  return (
+  <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
+    background:"rgba(30,50,80,0.50)",zIndex:1000,display:"flex",
+    alignItems:"center",justifyContent:"center",padding:16}}
+    onClick={()=>setShowLog(false)}>
+    <div style={{background:"#FFFFFF",border:"1px solid #A8C8E0",
+      borderRadius:8,maxWidth:680,width:"100%",maxHeight:"85vh",
+      display:"flex",flexDirection:"column",overflow:"hidden"}}
+      onClick={e=>e.stopPropagation()}>
+      <div style={{display:"flex",justifyContent:"space-between",
+        alignItems:"center",padding:"12px 18px",
+        borderBottom:"1px solid #1A3050",background:"#FAFCFF",flexShrink:0}}>
+        <span style={{fontFamily:"Courier New, monospace",fontSize:11,
+          color:"#1560B0",letterSpacing:2,fontWeight:"bold"}}>
+          ARCHITECT — {eventLog.length} EVENTS{errorLog.length>0?` · ⚠ ${errorLog.length} DIAGNOSTICS`:""}
+        </span>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setExportContent(downloadLog(eventLog,sessionId))}
+            style={{background:"none",border:"1px solid #4A9EFF44",borderRadius:4,
+              color:"#1560B0",cursor:"pointer",fontSize:10,padding:"2px 10px",
+              fontFamily:"Courier New, monospace"}}>
+            DOWNLOAD
+          </button>
+          <button onClick={()=>setShowLog(false)}
+            style={{background:"none",border:"1px solid #2A4060",borderRadius:4,
+              color:"#1E3C5C",cursor:"pointer",fontSize:12,padding:"2px 10px",
+              fontFamily:"Courier New, monospace"}}>
+            ✕ CLOSE
+          </button>
+        </div>
+      </div>
+      <div style={{overflowY:"auto",flex:1,padding:"12px 16px"}}>
+        {/* Error entries first, in red */}
+        {errorLog.length>0&&(
+          <div style={{marginBottom:16}}>
+            <div style={{fontFamily:"Courier New, monospace",fontSize:9,
+              color:"#C81030",letterSpacing:2,marginBottom:8,
+              borderBottom:"1px solid #E0506033",paddingBottom:4,
+              display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span>⚠ ARCHITECT DIAGNOSTICS ({errorLog.length})</span>
+              <button onClick={()=>{
+                const txt=[...errorLog].reverse().map(e=>[
+                  `[${e.severity?.toUpperCase()||"ERROR"}] ${e.timestamp} T${e.turn||"?"}`,
+                  `Stage: ${e.stage}`,
+                  `Message: ${e.message}`,
+                  e.source?`Source: ${e.source}`:"",
+                  e.hint?`Hint: ${e.hint}`:"",
+                  e.fallback?`Fallback: ${e.fallback}`:"",
+                  e.inputs?`Inputs: ${JSON.stringify(e.inputs)}`:"",
+                  e.session?`Session: ${JSON.stringify(e.session)}`:"",
+                  e.stack?`Stack:\n${e.stack}`:"",
+                  "─".repeat(60),
+                ].filter(Boolean).join("\n")).join("\n");
+                navigator.clipboard.writeText(txt);
+              }} style={{padding:"2px 8px",background:"transparent",
+                border:"1px solid #E0506044",borderRadius:3,
+                color:"#C81030",cursor:"pointer",
+                fontSize:7,fontFamily:"Courier New, monospace"}}>
+                COPY ALL ERRORS
+              </button>
+            </div>
+            {[...errorLog].reverse().map((e,i)=>{
+              const sevColor=e.severity==="fatal"?"#FF4444"
+                :e.severity==="error"?"#C81030"
+                :e.severity==="warn"?"#9A5C08"
+                :"#1560B0";
+              return (
+                <div key={i} style={{padding:"10px 12px",marginBottom:8,
+                  background:"#FEF4F4",borderRadius:4,
+                  borderLeft:`3px solid ${sevColor}`}}>
+                  {/* Header row */}
+                  <div style={{display:"flex",justifyContent:"space-between",
+                    alignItems:"center",marginBottom:6}}>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                      <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+                        color:sevColor,letterSpacing:1,fontWeight:"bold",
+                        padding:"1px 6px",border:`1px solid ${sevColor}44`,
+                        borderRadius:3,background:`${sevColor}11`}}>
+                        {e.severity?.toUpperCase()||"ERROR"}
+                      </span>
+                      <span style={{fontFamily:"Courier New, monospace",fontSize:9,
+                        color:sevColor,letterSpacing:1,fontWeight:"bold"}}>
+                        {e.stage?.toUpperCase().split("_").join(" ")||"UNKNOWN"}
+                      </span>
+                    </div>
+                    <span style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#2E5070"}}>
+                      T{e.turn||"?"} · {e.timestamp?.slice(11,19)||""}
+                    </span>
+                  </div>
+                  {/* Message */}
+                  <div style={{fontFamily:"Courier New, monospace",fontSize:8,
+                    color:"#C05050",lineHeight:1.6,marginBottom:4}}>
+                    {e.message}
+                  </div>
+                  {/* Hint — plain language fix suggestion */}
+                  {e.hint&&(
+                    <div style={{fontFamily:"Courier New, monospace",fontSize:8,
+                      color:"#9A5C08",lineHeight:1.5,marginBottom:4,
+                      padding:"3px 6px",background:"#FFF8EE",borderRadius:2}}>
+                      💡 {e.hint}
+                    </div>
+                  )}
+                  {/* Source line */}
+                  {e.source&&e.source!=="unknown"&&(
+                    <div style={{fontFamily:"Courier New, monospace",fontSize:7,
+                      color:"#4A6080",marginBottom:4}}>
+                      at {e.source}
+                    </div>
+                  )}
+                  {/* Inputs snapshot */}
+                  {e.inputs&&Object.keys(e.inputs).length>0&&(
+                    <div style={{fontFamily:"Courier New, monospace",fontSize:7,
+                      color:"#2A4050",marginBottom:4,lineHeight:1.6}}>
+                      inputs: {Object.entries(e.inputs).map(([k,v])=>`${k}=${JSON.stringify(v)}`).join(" · ")}
+                    </div>
+                  )}
+                  {/* Session state */}
+                  {e.session&&(
+                    <div style={{fontFamily:"Courier New, monospace",fontSize:7,
+                      color:"#2A4050",marginBottom:4,lineHeight:1.6}}>
+                      mode:{e.session.harnessMode} · drift:{e.session.driftCount} · σ²:{e.session.smoothedVar?.toFixed(4)??"—"} · calm:{e.session.calmStreak??"—"}
+                    </div>
+                  )}
+                  {/* Fallback note */}
+                  {e.fallback&&(
+                    <div style={{fontFamily:"Courier New, monospace",fontSize:7,
+                      color:"#40D08088",marginBottom:4}}>
+                      ↳ {e.fallback}
+                    </div>
+                  )}
+                  {/* Stack trace */}
+                  {e.stack&&(
+                    <details>
+                      <summary style={{fontFamily:"Courier New, monospace",
+                        fontSize:7,color:"#2E5070",cursor:"pointer",
+                        marginTop:4,userSelect:"none"}}>
+                        stack trace ▾
+                      </summary>
+                      <pre style={{fontFamily:"Courier New, monospace",fontSize:7,
+                        color:"#2E5070",margin:"4px 0 0",
+                        whiteSpace:"pre-wrap",wordBreak:"break-all",
+                        background:"#FFFFFF",padding:"6px 8px",borderRadius:3,
+                        lineHeight:1.6}}>
+                        {e.stack}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {/* Standard event entries */}
+        {eventLog.length===0&&errorLog.length===0?(
+          <div style={{fontFamily:"Courier New, monospace",fontSize:10,
+            color:"#2E5070",textAlign:"center",padding:"20px"}}>
+            No events logged yet.
+          </div>
+        ):([...eventLog].reverse().map((e,i)=>{
+          const typeColor=e.type==="probable_hallucination_signal"?"#9A5C08"
+            :e.type==="behavioral_signal"?"#4848B8"
+            :e.type==="decoherence_alert"?"#C81030"
+            :e.type==="LOCK_888"?"#4848B8"
+            :e.type==="calm_streak"?"#178040"
+            :"#1560B0";
+          return (
+            <div key={i} style={{padding:"8px 10px",marginBottom:6,
+              background:"#EEF2F7",borderRadius:4,
+              borderLeft:`3px solid ${typeColor}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",
+                alignItems:"center",marginBottom:4}}>
+                <span style={{fontFamily:"Courier New, monospace",fontSize:9,
+                  color:typeColor,letterSpacing:1,fontWeight:"bold"}}>
+                  {e.type.toUpperCase().split("_").join(" ")}
+                </span>
+                <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+                  color:"#2E5070"}}>
+                  T{e.turn||"?"} · {e.timestamp?.slice(11,19)||""}
+                </span>
+              </div>
+              {e.note&&<div style={{fontFamily:"Courier New, monospace",fontSize:8,
+                color:"#1E3C5C",lineHeight:1.5}}>{e.note}</div>}
+              {e.detail&&<div style={{fontFamily:"Courier New, monospace",fontSize:8,
+                color:"#1E3C5C",lineHeight:1.5,marginTop:2}}>{e.detail}</div>}
+              {e.signals&&Array.isArray(e.signals)&&(
+                <div style={{fontFamily:"Courier New, monospace",fontSize:8,
+                  color:"#6A8090",lineHeight:1.5,marginTop:2}}>
+                  {e.signals.join(" · ")}
+                </div>
+              )}
+              {e.coherence_score!=null&&(
+                <div style={{fontFamily:"Courier New, monospace",fontSize:8,
+                  color:"#2E5070",marginTop:2}}>
+                  C={e.coherence_score.toFixed(3)}
+                </div>
+              )}
+              {(e.type==="probable_hallucination_signal"||e.type==="behavioral_signal")&&(
+                <div style={{marginTop:4}}>
+                  {corrections.some(x=>x.turn===e.turn&&x.type===e.type)
+                    ? <span style={{fontFamily:"Courier New, monospace",fontSize:7,
+                        color:"#178040",letterSpacing:1}}>✓ MARKED FALSE +</span>
+                    : <button onClick={()=>{
+                        const entry={turn:e.turn,type:e.type,
+                          timestamp:new Date().toISOString(),
+                          signal_detail:e.detail||e.signals?.join(' | ')||''};
+                        setCorrections(p=>[...p,entry]);
+                        setEventLog(p=>[...p,{
+                          timestamp:entry.timestamp,turn:e.turn,
+                          type:"false_positive_correction",
+                          corrected_type:e.type,
+                          note:"User marked as false positive",
+                        }]);
+                      }} style={{padding:"2px 8px",background:"transparent",
+                        border:"1px solid #40D08044",borderRadius:3,
+                        color:"#178040",cursor:"pointer",fontSize:7,
+                        fontFamily:"Courier New, monospace",letterSpacing:1}}>
+                        FALSE +
+                      </button>
+                  }
+                </div>
+              )}
+            </div>
+          );
+        }))}
+      </div>
+    </div>
+  </div>
+  );
+});
+
+// ── BookmarksModal ──────────────────────────────────────────────
+const BookmarksModal = React.memo(function BookmarksModal({showBookmarks,setShowBookmarks,bookmarks,setBookmarks,messages,coherenceData,toggleBookmark}) {
+  if (!showBookmarks) return null;
+  return (
+  <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
+    background:"rgba(30,50,80,0.50)",zIndex:1000,display:"flex",
+    alignItems:"center",justifyContent:"center",padding:16}}
+    onClick={()=>setShowBookmarks(false)}>
+    <div style={{background:"#FFFFFF",border:"1px solid #90600088",
+      borderRadius:8,maxWidth:720,width:"100%",maxHeight:"88vh",
+      display:"flex",flexDirection:"column",overflow:"hidden"}}
+      onClick={e=>e.stopPropagation()}>
+      {/* Header */}
+      <div style={{display:"flex",justifyContent:"space-between",
+        alignItems:"center",padding:"12px 18px",
+        borderBottom:"1px solid #2A2010",background:"#FAFCFF",flexShrink:0}}>
+        <span style={{fontFamily:"Courier New, monospace",fontSize:11,
+          color:"#906000",letterSpacing:2,fontWeight:"bold"}}>
+          ★ SAVED TURNS — {bookmarks.length}
+        </span>
+        <button onClick={()=>setShowBookmarks(false)}
+          style={{background:"none",border:"1px solid #2A4060",borderRadius:4,
+            color:"#1E3C5C",cursor:"pointer",fontSize:12,padding:"2px 10px",
+            fontFamily:"Courier New, monospace"}}>
+          ✕ CLOSE
+        </button>
+      </div>
+      {/* Body */}
+      <div style={{overflowY:"auto",flex:1,padding:"12px 16px"}}>
+        {bookmarks.length===0?(
+          <div style={{fontFamily:"Courier New, monospace",fontSize:10,
+            color:"#2E5070",textAlign:"center",padding:"20px"}}>
+            No bookmarks yet. Click ☆ on any assistant turn to save it.
+          </div>
+        ):bookmarks.map((bk,i)=>{
+          const m=bk.metrics;
+          const scoreColor=m.raw==null?"#2E5070":m.raw>.80?"#178040":m.raw>.65?"#9A5C08":"#C81030";
+          return (
+            <div key={bk.id} style={{marginBottom:16,borderRadius:6,
+              background:"#F2F4F8",border:"1px solid #1A2840",overflow:"hidden"}}>
+              {/* Turn header */}
+              <div style={{display:"flex",justifyContent:"space-between",
+                alignItems:"center",padding:"7px 12px",
+                background:"#FFFFFF",borderBottom:"1px solid #1A2840"}}>
+                <span style={{fontFamily:"Courier New, monospace",fontSize:9,
+                  color:"#906000",letterSpacing:2,fontWeight:"bold"}}>
+                  ★ TURN {bk.turn}
+                </span>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  {m.raw!=null&&(
+                    <span style={{fontFamily:"Courier New, monospace",fontSize:9,
+                      padding:"1px 6px",borderRadius:3,
+                      background:m.raw>.80?"#E8F4EC":m.raw>.65?"#FFF4DD":"#FFEEEE",
+                      color:scoreColor,border:`1px solid ${scoreColor}33`}}>
+                      C={m.raw.toFixed(3)}
+                    </span>
+                  )}
+                  {m.kalman!=null&&(
+                    <span style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#2E5070"}}>
+                      K={m.kalman.toFixed(3)}
+                    </span>
+                  )}
+                  {m.smoothedVar!=null&&(
+                    <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+                      color:m.smoothedVar>VAR_DECOHERENCE?"#C81030"
+                        :m.smoothedVar>VAR_CAUTION?"#9A5C08"
+                        :m.smoothedVar<VAR_CALM?"#178040":"#0E2A5A"}}>
+                      σ²={m.smoothedVar.toFixed(4)}
+                    </span>
+                  )}
+                  {m.harnessActive&&(
+                    <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+                      padding:"1px 5px",borderRadius:3,
+                      background:"#FFEEEE",color:"#C81030",border:"1px solid #E0506033"}}>
+                      ⚠ DRIFT
+                    </span>
+                  )}
+                  {m.hallucinationFlag&&(
+                    <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+                      padding:"1px 5px",borderRadius:3,
+                      background:"#FFF4E8",color:"#9A5C08",border:"1px solid #E8A03033"}}
+                      title={m.hallucinationSignals?.join(" | ")||""}>
+                      ⚠ H-SIG
+                    </span>
+                  )}
+                  {m.behavioralFlag&&(
+                    <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+                      padding:"1px 5px",borderRadius:3,
+                      background:"#EEEEFF",color:"#4848B8",border:"1px solid #8888FF33"}}
+                      title={m.behavioralSignals?.map(s=>s.type).join(" | ")||""}>
+                      ⚠ B-SIG
+                    </span>
+                  )}
+                  {m.sourceScore!=null&&(
+                    <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+                      padding:"1px 5px",borderRadius:3,
+                      background:m.sourceScore>0.15?"#E8F4EC":"#FEF0F0",
+                      color:m.sourceScore>0.15?"#178040":"#C81030",
+                      border:`1px solid ${m.sourceScore>0.15?"#40D08033":"#E0506033"}`}}>
+                      {m.sourceScore>0.15?"✓ SRC":"⚠ SRC"}
+                    </span>
+                  )}
+                  <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+                    color:"#2E5070",
+                    borderLeft:"1px solid #1A3050",paddingLeft:8}}>
+                    {HARNESS_MODES[m.mode]?.label??m.mode?.toUpperCase()??"—"}
+                  </span>
+                  <button onClick={()=>toggleBookmark(bk.cohIdx)}
+                    title="Remove bookmark"
+                    style={{background:"none",border:"1px solid #C8860A33",
+                      borderRadius:3,color:"#906000",cursor:"pointer",
+                      fontSize:9,padding:"1px 6px",
+                      fontFamily:"Courier New, monospace",opacity:0.7}}>
+                    ★ REMOVE
+                  </button>
+                </div>
+              </div>
+              {/* User prompt */}
+              <div style={{padding:"8px 12px",
+                borderBottom:"1px solid #1A2030",background:"#EEF2F7"}}>
+                <div style={{fontFamily:"Courier New, monospace",fontSize:8,
+                  color:"#2E5070",letterSpacing:2,marginBottom:4}}>USER</div>
+                <div style={{fontFamily:"'Trebuchet MS', sans-serif",fontSize:12,
+                  color:"#162840",lineHeight:1.6,whiteSpace:"pre-wrap"}}>
+                  {bk.userText}
+                </div>
+              </div>
+              {/* Assistant response */}
+              <div style={{padding:"8px 12px"}}>
+                <div style={{fontFamily:"Courier New, monospace",fontSize:8,
+                  color:"#2E5070",letterSpacing:2,marginBottom:4}}>ASSISTANT</div>
+                <div style={{fontFamily:"'Trebuchet MS', sans-serif",fontSize:12,
+                  color:"#1A2A3A",lineHeight:1.6,whiteSpace:"pre-wrap"}}>
+                  {bk.assistantText}
+                </div>
+              </div>
+              {/* V1.5.0: Annotation field */}
+              <div style={{padding:"6px 12px",borderTop:"1px solid #1A2030",
+                background:"#F4F7FB"}}>
+                <div style={{fontFamily:"Courier New, monospace",fontSize:7,
+                  color:"#2E5070",letterSpacing:2,marginBottom:3}}>NOTE</div>
+                <input
+                  value={bk.note||""}
+                  onChange={e=>setBookmarks(p=>p.map(b=>b.id===bk.id?{...b,note:e.target.value}:b))}
+                  placeholder="Add research note (e.g. example of topic hijack T7)…"
+                  style={{width:"100%",background:"#EEF2F7",border:"1px solid #1A2840",
+                    borderRadius:3,color:"#0E2A5A",padding:"4px 8px",
+                    fontFamily:"'Trebuchet MS', sans-serif",fontSize:11,
+                    outline:"none",boxSizing:"border-box"}}/>
+              </div>
+              {/* Signal detail if present */}
+              {(m.hallucinationSignals?.length>0||m.behavioralSignals?.length>0)&&(
+                <div style={{padding:"6px 12px",borderTop:"1px solid #1A2030",
+                  background:"#FFFFFF"}}>
+                  {m.hallucinationSignals?.map((s,j)=>(
+                    <div key={j} style={{fontFamily:"Courier New, monospace",fontSize:8,
+                      color:"#9A5C08",lineHeight:1.6}}>⚠ H: {s}</div>
+                  ))}
+                  {m.behavioralSignals?.map((s,j)=>(
+                    <div key={j} style={{fontFamily:"Courier New, monospace",fontSize:8,
+                      color:"#4848B8",lineHeight:1.6}}>⚠ B: {s.detail||s.type}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {/* Footer */}
+      <div style={{padding:"8px 18px",borderTop:"1px solid #1A2010",
+        background:"#FAFCFF",flexShrink:0,
+        display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+          color:"#2E5070",letterSpacing:1}}>
+          {bookmarks.length} TURN{bookmarks.length!==1?"S":""} SAVED · CLICK ★ REMOVE TO UNSAVE
+        </span>
+        <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+          color:"#2E5070",letterSpacing:1}}>
+          V1.5.7 © HUDSON &amp; PERRY
+        </span>
+      </div>
+    </div>
+  </div>
+  );
+});
+
+// ── GuideModal ──────────────────────────────────────────────
+const GuideModal = React.memo(function GuideModal({showGuide,setShowGuide,guideTab,setGuideTab}) {
+  if (!showGuide) return null;
+  return (
+  <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
+    background:"rgba(30,50,80,0.50)",zIndex:1000,display:"flex",
+    alignItems:"center",justifyContent:"center",padding:16}}
+    onClick={()=>setShowGuide(false)}>
+    <div style={{background:"#FFFFFF",border:"1px solid #A8C8E0",
+      borderRadius:8,maxWidth:680,width:"100%",maxHeight:"85vh",
+      display:"flex",flexDirection:"column",overflow:"hidden"}}
+      onClick={e=>e.stopPropagation()}>
+      <div style={{display:"flex",justifyContent:"space-between",
+        alignItems:"center",padding:"12px 18px",
+        borderBottom:"1px solid #1A3050",background:"#FAFCFF",flexShrink:0}}>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setGuideTab("guide")}
+            style={{background:"none",border:`1px solid ${guideTab==="guide"?"#1560B0":"#2E5070"}`,
+              borderRadius:4,color:guideTab==="guide"?"#1560B0":"#1E3C5C",
+              cursor:"pointer",fontSize:10,padding:"3px 12px",
+              fontFamily:"Courier New, monospace",letterSpacing:1}}>
+            USER GUIDE
+          </button>
+          <button onClick={()=>setGuideTab("framework")}
+            style={{background:"none",border:`1px solid ${guideTab==="framework"?"#0A7878":"#2E5070"}`,
+              borderRadius:4,color:guideTab==="framework"?"#0A7878":"#1E3C5C",
+              cursor:"pointer",fontSize:10,padding:"3px 12px",
+              fontFamily:"Courier New, monospace",letterSpacing:1}}>
+            FRAMEWORK
+          </button>
+        </div>
+        <button onClick={()=>setShowGuide(false)}
+          style={{background:"none",border:"1px solid #2A4060",borderRadius:4,
+            color:"#1E3C5C",cursor:"pointer",fontSize:12,padding:"2px 10px",
+            fontFamily:"Courier New, monospace"}}>
+          ✕ CLOSE
+        </button>
+      </div>
+      <div style={{overflowY:"auto",flex:1,padding:"16px 20px"}}>
+        <pre style={{fontFamily:"Courier New, monospace",fontSize:10,
+          color:"#0E1C2A",lineHeight:1.9,margin:0,
+          whiteSpace:"pre-wrap",wordBreak:"break-word"}}>
+          {guideTab==="guide"?GUIDE_CONTENT:FRAMEWORK_CONTENT}
+        </pre>
+      </div>
+      <div style={{padding:"10px 18px",borderTop:"1px solid #1A3050",
+        background:"#FAFCFF",flexShrink:0,
+        display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+          color:"#2E5070",letterSpacing:1}}>
+          © 2026 DAVID HUDSON &amp; DAVID PERRY
+        </span>
+        <div style={{display:"flex",gap:12}}>
+          <a href="https://x.com/RaccoonStampede" target="_blank" rel="noreferrer"
+            style={{fontFamily:"Courier New, monospace",fontSize:8,
+              color:"#1560B0",textDecoration:"none",letterSpacing:1}}>
+            𝕏 @RaccoonStampede
+          </a>
+          <a href="https://x.com/Prosperous727" target="_blank" rel="noreferrer"
+            style={{fontFamily:"Courier New, monospace",fontSize:8,
+              color:"#1560B0",textDecoration:"none",letterSpacing:1}}>
+            𝕏 @Prosperous727
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  );
+});
+
 export default function HudsonPerryDriftV1() {
   const [messages,        setMessages]        = useState([]);
-  const [input,           setInput]           = useState("");
+  // V1.5.6 fix (typing bug): replaced `const [input, setInput]` with `hasInput` boolean.
+  // The old controlled textarea caused sendMessage to be recreated + the full component
+  // to re-render on every single keystroke (visible as letter-jumping in the artifact iframe).
+  // Text is now read via inputValueRef (set in V1.5.4). Only a boolean state tracks
+  // whether the textarea has content — used solely for the send button disabled state.
+  const [hasInput,        setHasInput]        = useState(false);
   const [isLoading,       setIsLoading]       = useState(false);
   const [harnessMode,     setHarnessMode]     = useState("audit");
   const [kalmanState,     setKalmanState]     = useState({x:0,P:.05});
@@ -1488,6 +2688,7 @@ export default function HudsonPerryDriftV1() {
   const [tokenEstimate,   setTokenEstimate]   = useState(0);
   const [bookmarks,       setBookmarks]       = useState([]);
   const [showBookmarks,   setShowBookmarks]   = useState(false);
+  // V1.
   const [corrections,     setCorrections]     = useState([]);
   // V1.5.0
   const [nPaths,          setNPaths]          = useState(50);
@@ -1523,6 +2724,8 @@ export default function HudsonPerryDriftV1() {
 
   const chatEndRef=useRef(null);
   const inputRef=useRef(null);
+  // V1.
+  const inputValueRef=useRef("");
   useEffect(()=>{
     if (rewindTurn===null) chatEndRef.current?.scrollIntoView({behavior:"smooth"});
   },[messages,rewindTurn]);
@@ -1555,6 +2758,7 @@ export default function HudsonPerryDriftV1() {
         if (p.adaptiveSigmaOn!=null)   setAdaptiveSigmaOn(p.adaptiveSigmaOn);
         if (p.adaptationRate!=null)    setAdaptationRate(p.adaptationRate);
         if (p.adaptedSigma!=null)      setAdaptedSigma(p.adaptedSigma);
+        if (p.mathEpsilon!=null)        setMathEpsilon(p.mathEpsilon); // V1.5.3 #6
         if (p.nPaths!=null)            setNPaths(p.nPaths);
         if (p.postAuditMode)           setPostAuditMode(p.postAuditMode);
         if (p.customMutePhrases)       setCustomMutePhrases(p.customMutePhrases);
@@ -1593,6 +2797,7 @@ export default function HudsonPerryDriftV1() {
           featMute,featGate,featBSig,featHSig,featPrune,featZeroDrift,
           adaptiveSigmaOn,adaptationRate,adaptedSigma,
           nPaths,postAuditMode,customMutePhrases,researchNotes,
+          mathEpsilon, // V1.5.3 fix #6: persist user-tuned epsilon
         }));
       } catch(e) { console.warn("hpdl: config save failed",e); }
     })();
@@ -1600,7 +2805,7 @@ export default function HudsonPerryDriftV1() {
      featKalman,featGARCH,featSDE,featRAG,featPipe,
      featMute,featGate,featBSig,featHSig,featPrune,featZeroDrift,
      adaptiveSigmaOn,adaptationRate,adaptedSigma,
-     nPaths,postAuditMode,customMutePhrases,researchNotes]);
+     nPaths,postAuditMode,customMutePhrases,researchNotes,mathEpsilon]);
 
   useEffect(()=>{
     if (!coherenceData.length&&!bookmarks.length) return;
@@ -1613,11 +2818,12 @@ export default function HudsonPerryDriftV1() {
         }));
       } catch(e) { console.warn("hpdl: data save failed",e); }
     })();
-  // P5: bookmarks added to deps — saves immediately on toggle, not only on next send
-  },[coherenceData,bookmarks]);
+  // V1.
+  },[coherenceData,bookmarks,eventLog]);
 
   const currentMode=HARNESS_MODES[harnessMode];
-  const cap_eff=driftLawCapEff(currentMode.gamma_h);
+  // V1.5.3 fix #6: thread mathEpsilon so the user-tunable value actually propagates
+  const cap_eff=driftLawCapEff(currentMode.gamma_h,mathEpsilon);
   // V1.5.0: active config — custom uses customConfig, others use PRESETS
   const cfg = activePreset==="CUSTOM" ? customConfig : PRESETS[activePreset]??PRESETS.DEFAULT;
   // V1.5.0: live derived values from user-adjustable constants
@@ -1650,15 +2856,18 @@ export default function HudsonPerryDriftV1() {
         } else {
           results.push({id,kind,name:file.name,text:await fileToText(file)});
         }
-      } catch{setFileError(`Failed: ${file.name}`);}
+      } catch(fileErr){
+        // V1.5.5 fix #13: was silent catch — failures invisible to debugging.
+        console.error(`[ARCHITECT] processFiles failed for ${file.name}:`,fileErr);
+        setFileError(`Failed: ${file.name}`);
+      }
     }
     if (results.length) setAttachments(prev=>[...prev,...results]);
   },[]);
 
   const removeAttachment=useCallback(id=>{
     setAttachments(prev=>{
-      const att=prev.find(a=>a.id===id);
-      if (att?.preview) URL.revokeObjectURL(att.preview);
+      // V1.
       return prev.filter(a=>a.id!==id);
     });
   },[]);
@@ -1669,7 +2878,7 @@ export default function HudsonPerryDriftV1() {
   // when coherenceData, livePaths, or harnessMode actually changes.
   const chartData=useMemo(()=>coherenceData.map((d,i)=>{
     const step=Math.round((i+1)*15),pcts=sdePercentilesAtStep(livePaths,step);
-    const mean=d.kalman,floor=1-driftLawFloor(i+1,currentMode.gamma_h)*2;
+    const mean=d.kalman,floor=1-driftLawFloor(i+1,currentMode.gamma_h,mathEpsilon)*2; // V1.5.3 #6
     return {
       turn:i+1,raw:d.raw,kalman:d.kalman,
       p10:Math.min(.99,Math.max(.20,mean+pcts.p10*.15)),
@@ -1677,7 +2886,7 @@ export default function HudsonPerryDriftV1() {
       floor:Math.max(.20,floor),
       harness:d.harnessActive?d.raw:null,
     };
-  }),[coherenceData,livePaths,currentMode]);
+  }),[coherenceData,livePaths,currentMode,mathEpsilon]);
 
   // ── REWIND ───────────────────────────────────────────────────
   const restoreToTurn=useCallback((clickedTurn)=>{
@@ -1736,11 +2945,15 @@ export default function HudsonPerryDriftV1() {
 
   // ── Send message ─────────────────────────────────────────────
   const sendMessage=useCallback(async()=>{
-    const text=input.trim();
+    // V1.
+    const text=inputValueRef.current.trim();
     if ((!text&&!attachments.length)||isLoading) return;
 
     setRewindTurn(null);
-    setInput(""); setFileError(""); setStatusMessage(""); // P16: clear status on new send
+    inputValueRef.current="";
+    if(inputRef.current) inputRef.current.value=""; // clear uncontrolled textarea
+    setHasInput(false);
+    setFileError(""); setStatusMessage(""); // P16: clear status on new send
     const pending=[...attachments]; setAttachments([]);
     setIsLoading(true);
 
@@ -1752,10 +2965,11 @@ export default function HudsonPerryDriftV1() {
     const turn=turnCount+1;
     setTurnCount(turn);
 
-    const muteTriggered=detectMuteMode(text,activeMutePhrases);
+    // V1.
+    const muteTriggered=featMute&&detectMuteMode(text,activeMutePhrases);
     setMuteModeActive(muteTriggered);
 
-    const gateTriggered=USE_DRIFT_GATE&&smoothedVar!==null&&smoothedVar>(cfg.varCaution??VAR_CAUTION);
+    const gateTriggered=featGate&&smoothedVar!==null&&smoothedVar>(cfg.varCaution??VAR_CAUTION);
     setDriftGateActive(gateTriggered);
 
     try {
@@ -1797,13 +3011,18 @@ export default function HudsonPerryDriftV1() {
       const headers={"Content-Type":"application/json","anthropic-version":"2023-06-01"};
       if (apiKey.trim()) {
         headers["x-api-key"]=apiKey.trim();
-        // P15: was hostname!=="localhost" — fires in Claude artifact sandbox (claude.ai iframe)
-        // even though that's a sandboxed context. Now also excludes claude.ai origins.
+        // V1.5.3 fix #1: warn on ALL non-sandbox origins. Previously only warned on
+        // non-localhost which silently skipped the warning for Vercel/Netlify deploys.
+        // Sandbox = claude.ai iframe or anthropic.com — key is injected by the platform.
         const host=typeof window!=="undefined"?window.location.hostname:"";
-        const isLocal=host==="localhost"||host==="127.0.0.1";
         const isSandbox=host.includes("claude.ai")||host.includes("anthropic.com");
-        if (!isLocal&&!isSandbox) {
-          console.warn("⚠️ API key exposed in browser. Use a backend proxy for production.");
+        if (!isSandbox) {
+          console.warn(
+            "⚠️ SECURITY: API key is being sent directly from the browser.\n"+
+            "Anyone with devtools access can read it.\n"+
+            "For any deployment beyond this sandbox, route calls through a backend proxy.\n"+
+            "See API_ENDPOINT constant at the top of this file."
+          );
         }
       }
 
@@ -1956,7 +3175,7 @@ export default function HudsonPerryDriftV1() {
         }
         setScoreHistory(newHist);
         newVar=featGARCH
-          ?updateSmoothedVariance(newHist,smoothedVar)
+          ?updateSmoothedVariance(newHist,smoothedVar,cfg) // V1.5.3: pass cfg for preset GARCH params
           // Simple EMA fallback when GARCH off
           :(()=>{
             const mean=newHist.reduce((s,v)=>s+v,0)/newHist.length;
@@ -2127,7 +3346,9 @@ export default function HudsonPerryDriftV1() {
           scoreHistory:newHist,
           smoothedVar:newVar,
           calmStreak:newCalm,
-          lock888Achieved:newCalm>=LOCK_888_STREAK?true:lock888Achieved,
+          // V1.5.3 fix #4: use cfg.lock888Streak so CREATIVE(4)/RESEARCH(6)/MEDICAL(6)
+          // presets record the correct lock state. Was hardcoded to LOCK_888_STREAK=5.
+          lock888Achieved:newCalm>=(cfg.lock888Streak??LOCK_888_STREAK)?true:lock888Achieved,
           ragCache:newRagCache,
         };
         setTurnSnapshots(prev=>[...prev,snapshot].slice(-20));
@@ -2168,7 +3389,9 @@ export default function HudsonPerryDriftV1() {
       setIsLoading(false);
       setTimeout(()=>inputRef.current?.focus(),100);
     }
-  },[input,attachments,messages,isLoading,kalmanState,harnessMode,
+  // V1.5.4 fix #7: `input` removed from dep array — now read via inputValueRef.
+  // This was the single worst dep: it recreated the callback on every keystroke.
+  },[attachments,messages,isLoading,kalmanState,harnessMode,
      driftCount,turnCount,apiKey,ragCache,coherenceData,
      scoreHistory,smoothedVar,calmStreak,lock888Achieved,turnSnapshots,
      eventLog,adaptedSigma,adaptationRate,adaptiveSigmaOn,
@@ -2196,6 +3419,10 @@ export default function HudsonPerryDriftV1() {
     setTurnSnapshots([]);setRewindTurn(null);
     setBookmarks([]);setShowBookmarks(false);
     setCorrections([]);
+    // Clear input area — uncontrolled textarea must be cleared via DOM ref
+    inputValueRef.current="";
+    setHasInput(false);
+    if(inputRef.current) inputRef.current.value="";
     // researchNotes intentionally persists across session reset
     setAdaptedSigma(SDE_PARAMS.sigma);
     setTokenEstimate(0);
@@ -2221,15 +3448,14 @@ export default function HudsonPerryDriftV1() {
     const newHist=newCData.map(d=>d.raw);
     setScoreHistory(newHist);
     if (newHist.length>=2) {
-      // P9: was raw population variance — inconsistent with GARCH used on normal turns,
-      // causing a variance spike in research exports after any deletion.
-      // Now uses updateSmoothedVariance (GARCH blend) for consistency.
-      setSmoothedVar(updateSmoothedVariance(newHist, smoothedVar));
+      // P9: was raw population variance — inconsistent with GARCH used on normal turns.
+      // V1.5.3: also passes cfg so preset GARCH params apply here too (#3).
+      setSmoothedVar(updateSmoothedVariance(newHist, smoothedVar, cfg));
     }
     setTurnSnapshots([]);
     setRewindTurn(null);
     setStatusMessage(`Turn ${assistantMsgIndex+1} deleted — context freed. Snapshots cleared.`); // P16
-  },[messages,coherenceData]);
+  },[messages,coherenceData,cfg]);
 
   // ── Bookmark toggle ──────────────────────────────────────────
   // Saves full turn: user text, assistant response, all metrics.
@@ -2292,13 +3518,16 @@ export default function HudsonPerryDriftV1() {
     .map((d,i)=>({turn:i+1,mode:d.mode,active:d.harnessActive}))
     .filter((d,i,arr)=>i===0||d.mode!==arr[i-1].mode);
 
-  const lockStatus=applyZeroDriftLock(userAnchor-(lastScore??0)*.01,userAnchor);
+  // V1.
+  const lockStatus=useMemo(()=>
+    applyZeroDriftLock(userAnchor-(lastScore??0)*.01,userAnchor),
+  [lastScore,userAnchor]);
   const apiKeyValid=apiKey.trim().startsWith("sk-");
   const contextPruned=messages.filter(m=>m.role==="assistant").length>PRUNE_THRESHOLD;
-  const varColor=smoothedVar===null?"#3A5870"
-    :smoothedVar>VAR_DECOHERENCE?"#E05060"
-    :smoothedVar>VAR_CAUTION?"#E8A030"
-    :smoothedVar<VAR_CALM?"#40D080":"#7AB8D8";
+  const varColor=smoothedVar===null?THEME.textFaint
+    :smoothedVar>VAR_DECOHERENCE?THEME.red
+    :smoothedVar>VAR_CAUTION?THEME.orange
+    :smoothedVar<VAR_CALM?THEME.green:THEME.blue;
   const varLabel=smoothedVar===null?"—"
     :smoothedVar>VAR_DECOHERENCE?"⚠ DECOHERENCE"
     :smoothedVar>VAR_CAUTION?"△ CAUTION"
@@ -2306,8 +3535,8 @@ export default function HudsonPerryDriftV1() {
 
   const ScoreBadge=({score,kalman})=>{
     const ref=kalman!=null?kalman:score;
-    const bg=ref>.70?"#0A2A1A":ref>.50?"#2A1A00":"#2A0A0A";
-    const fg=ref>.70?"#40D080":ref>.50?"#E8A030":"#E05060";
+    const bg=ref>.70?"#E8F8EE":ref>.50?"#FFF8E8":"#FEEEEE";
+    const fg=ref>.70?THEME.green:ref>.50?THEME.orange:THEME.red;
     return <span style={{fontFamily:"Courier New, monospace",fontSize:10,padding:"1px 7px",
       borderRadius:3,background:bg,color:fg,border:`1px solid ${fg}33`,marginLeft:8,letterSpacing:1}}>
       C={score.toFixed(3)}</span>;
@@ -2315,101 +3544,112 @@ export default function HudsonPerryDriftV1() {
 
   // ── Styles ───────────────────────────────────────────────────
   const S={
-    root:{display:"flex",flexDirection:"column",height:"100vh",background:"#06090F",
-      color:"#B8CDE0",fontFamily:"'Trebuchet MS', sans-serif",fontSize:13,overflow:"hidden"},
+    root:{display:"flex",flexDirection:"column",height:"100vh",background:THEME.bgRoot,
+      color:THEME.textPrimary,fontFamily:"'Trebuchet MS', sans-serif",fontSize:13,overflow:"hidden"},
     header:{display:"flex",alignItems:"center",justifyContent:"space-between",
-      padding:"10px 20px",borderBottom:"1px solid #1A3050",background:"#080C14",flexWrap:"wrap",gap:8},
-    title:{fontFamily:"Courier New, monospace",fontSize:13,fontWeight:"bold",color:"#7AB8D8",letterSpacing:2},
-    subtitle:{fontFamily:"Courier New, monospace",fontSize:9,color:"#4A6880",letterSpacing:1,marginTop:2},
+      padding:"10px 20px",borderBottom:`1px solid ${THEME.border}`,background:THEME.bgPanel,flexWrap:"wrap",gap:8,
+      boxShadow:"0 1px 4px rgba(0,0,0,0.07)"},
+    title:{fontFamily:"Courier New, monospace",fontSize:13,fontWeight:"bold",color:THEME.blue,letterSpacing:2},
+    subtitle:{fontFamily:"Courier New, monospace",fontSize:9,color:THEME.textDim,letterSpacing:1,marginTop:2},
     modeBadge:{display:"flex",alignItems:"center",gap:8,padding:"4px 12px",borderRadius:4,
-      border:`1px solid ${currentMode.color}44`,background:`${currentMode.color}11`},
+      border:`1px solid ${currentMode.color}66`,background:`${currentMode.color}18`},
     modeDot:{width:8,height:8,borderRadius:"50%",background:currentMode.color,
-      boxShadow:`0 0 8px ${currentMode.color}`,
+      boxShadow:`0 0 6px ${currentMode.color}`,
       animation:harnessMode!=="audit"?"pulse 1.5s infinite":"none"},
     modeLabel:{fontFamily:"Courier New, monospace",fontSize:11,color:currentMode.color,letterSpacing:2},
     apiKeyRow:{display:"flex",alignItems:"center",gap:6,padding:"5px 20px",
-      borderBottom:"1px solid #1A3050",background:"#060A10"},
+      borderBottom:`1px solid ${THEME.border}`,background:THEME.bgCard},
     body:{display:"flex",flex:1,overflow:"hidden"},
     chatPanel:{flex:"0 0 55%",display:"flex",flexDirection:"column",
-      borderRight:"1px solid #1A3050",overflow:"hidden"},
-    chatMessages:{flex:1,overflowY:"auto",padding:"16px",display:"flex",flexDirection:"column",gap:12},
-    roleLabel:{fontFamily:"Courier New, monospace",fontSize:9,color:"#2A4060",letterSpacing:2,marginBottom:3},
+      borderRight:`1px solid ${THEME.border}`,overflow:"hidden"},
+    chatMessages:{flex:1,overflowY:"auto",padding:"16px",display:"flex",flexDirection:"column",gap:12,
+      background:THEME.bgRoot},
+    roleLabel:{fontFamily:"Courier New, monospace",fontSize:9,color:THEME.textFaint,letterSpacing:2,marginBottom:3},
     userBubble:{maxWidth:"85%",padding:"10px 14px",borderRadius:"8px 8px 2px 8px",
-      background:"#0D1E30",border:"1px solid #1A3A5A",color:"#A8C4E0",lineHeight:1.6},
+      background:THEME.userBubble,border:`1px solid ${THEME.userBubbleBorder}`,color:THEME.userText,lineHeight:1.6,
+      boxShadow:"0 1px 3px rgba(0,0,0,0.06)"},
     assistantBubble:{maxWidth:"92%",padding:"10px 14px",borderRadius:"8px 8px 8px 2px",
-      background:"#080D15",border:"1px solid #142030",color:"#B8CDE0",lineHeight:1.6},
-    driftBubble:{border:"1px solid #E0506044",background:"#150A0A"},
-    attachRow:{display:"flex",flexWrap:"wrap",gap:6,padding:"6px 16px 0",background:"#080C14"},
-    inputRow:{display:"flex",gap:8,padding:"10px 16px 12px",borderTop:"1px solid #1A3050",
-      background:"#080C14",alignItems:"flex-end"},
-    attachBtn:{width:44,height:44,background:"transparent",border:"1px solid #1A3050",
-      borderRadius:6,color:"#4A7090",fontSize:18,display:"flex",
+      background:THEME.asstBubble,border:`1px solid ${THEME.asstBubbleBorder}`,color:THEME.asstText,lineHeight:1.6,
+      boxShadow:"0 1px 3px rgba(0,0,0,0.04)"},
+    driftBubble:{border:`1px solid ${THEME.driftBorder}`,background:THEME.driftBubble},
+    attachRow:{display:"flex",flexWrap:"wrap",gap:6,padding:"6px 16px 0",background:THEME.bgCard},
+    inputRow:{display:"flex",gap:8,padding:"10px 16px 12px",borderTop:`1px solid ${THEME.border}`,
+      background:THEME.bgCard,alignItems:"flex-end"},
+    attachBtn:{width:44,height:44,background:"transparent",border:`1px solid ${THEME.border}`,
+      borderRadius:6,color:THEME.textDim,fontSize:18,display:"flex",
       alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer"},
-    textarea:{flex:1,background:"#0A1020",border:"1px solid #1A3050",borderRadius:4,
-      color:"#B8CDE0",padding:"8px 12px",fontFamily:"'Trebuchet MS', sans-serif",
+    textarea:{flex:1,background:THEME.bgInput,border:`1px solid ${THEME.border}`,borderRadius:4,
+      color:THEME.textPrimary,padding:"8px 12px",fontFamily:"'Trebuchet MS', sans-serif",
       fontSize:13,resize:"none",outline:"none",lineHeight:1.5},
-    sendBtn:{padding:"0 18px",height:44,background:"#0E2A40",border:"1px solid #1E5A80",
-      borderRadius:4,color:"#7AB8D8",cursor:"pointer",fontSize:11,
+    sendBtn:{padding:"0 18px",height:44,background:THEME.blue,border:`1px solid ${THEME.blue}`,
+      borderRadius:4,color:"#FFFFFF",cursor:"pointer",fontSize:11,
       fontFamily:"Courier New, monospace",letterSpacing:1,flexShrink:0},
-    errorBar:{padding:"4px 16px",background:"#0A1020",borderTop:"1px solid #1EAAAA33",
-      fontFamily:"Courier New, monospace",fontSize:9,color:"#1EAAAA",letterSpacing:1},
-    metricsPanel:{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#070B12"},
-    metricSection:{borderBottom:"1px solid #1A3050",padding:"12px 16px"},
+    errorBar:{padding:"4px 16px",background:THEME.bgCard,borderTop:`1px solid ${THEME.teal}44`,
+      fontFamily:"Courier New, monospace",fontSize:9,color:THEME.teal,letterSpacing:1},
+    metricsPanel:{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:THEME.bgCard},
+    metricSection:{borderBottom:`1px solid ${THEME.borderLight}`,padding:"12px 16px"},
     sectionTitle:{fontFamily:"Courier New, monospace",fontSize:9,letterSpacing:3,
-      color:"#4A7090",textTransform:"uppercase",marginBottom:8},
+      color:THEME.textDim,textTransform:"uppercase",marginBottom:8},
     statRow:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5},
-    statLabel:{fontFamily:"Courier New, monospace",fontSize:10,color:"#4A6880"},
-    statValue:{fontFamily:"Courier New, monospace",fontSize:11,color:"#7AB8D8",fontWeight:"bold"},
-    driftBar:{height:4,background:"#0A1020",borderRadius:2,overflow:"hidden",marginTop:4},
-    resetBtn:{padding:"4px 10px",background:"transparent",border:"1px solid #2A4060",
-      borderRadius:4,color:"#4A6880",cursor:"pointer",fontSize:10,
+    statLabel:{fontFamily:"Courier New, monospace",fontSize:10,color:THEME.textDim},
+    statValue:{fontFamily:"Courier New, monospace",fontSize:11,color:THEME.textMid,fontWeight:"bold"},
+    driftBar:{height:4,background:THEME.bgInput,borderRadius:2,overflow:"hidden",marginTop:4},
+    resetBtn:{padding:"4px 10px",background:"transparent",border:`1px solid ${THEME.border}`,
+      borderRadius:4,color:THEME.textDim,cursor:"pointer",fontSize:10,
       fontFamily:"Courier New, monospace",letterSpacing:1},
-    exportBtn:{padding:"4px 10px",background:"transparent",border:"1px solid #1EAAAA44",
-      borderRadius:4,color:"#1EAAAA",cursor:"pointer",fontSize:10,
+    exportBtn:{padding:"4px 10px",background:"transparent",border:`1px solid ${THEME.teal}66`,
+      borderRadius:4,color:THEME.teal,cursor:"pointer",fontSize:10,
       fontFamily:"Courier New, monospace",letterSpacing:1},
-    logBtn:{padding:"4px 10px",background:"transparent",border:"1px solid #4A9EFF44",
-      borderRadius:4,color:"#4A9EFF",cursor:"pointer",fontSize:10,
+    logBtn:{padding:"4px 10px",background:"transparent",border:`1px solid ${THEME.blue}66`,
+      borderRadius:4,color:THEME.blue,cursor:"pointer",fontSize:10,
       fontFamily:"Courier New, monospace",letterSpacing:1},
     loading:{display:"flex",gap:4,padding:"8px 14px"},
-    dot:{width:6,height:6,borderRadius:"50%",background:"#1E7090",animation:"bounce 1.2s infinite"},
+    dot:{width:6,height:6,borderRadius:"50%",background:THEME.teal,animation:"bounce 1.2s infinite"},
   };
 
-  const exportBlock=buildExportBlock({kalmanState,harnessMode,driftCount,turnCount,
+  // V1.5.5 fix #10: buildExportBlock calls applyZeroDriftLock internally.
+  // Wrapped in useMemo — only recomputes when session state actually changes.
+  const exportBlock=useMemo(()=>buildExportBlock({kalmanState,harnessMode,driftCount,turnCount,
     lastScore,coherenceData,ragCache,smoothedVar,calmStreak,lock888Achieved,
     userKappa,userAnchor,activePreset,
       featKalman,featGARCH,featSDE,featRAG,featPipe,featMute,
       featGate,featBSig,featHSig,featPrune,featZeroDrift,
-      nPaths,postAuditMode});
+      nPaths,postAuditMode}),
+  [kalmanState,harnessMode,driftCount,turnCount,lastScore,coherenceData,
+   ragCache,smoothedVar,calmStreak,lock888Achieved,userKappa,userAnchor,
+   activePreset,featKalman,featGARCH,featSDE,featRAG,featPipe,featMute,
+   featGate,featBSig,featHSig,featPrune,featZeroDrift,nPaths,postAuditMode]);
 
   return (
     <div style={S.root}>
       <style>{`
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
         @keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
-        @keyframes lock888{0%,100%{box-shadow:0 0 4px #8888FF}50%{box-shadow:0 0 18px #8888FF}}
-        @keyframes pipeGlow{0%,100%{border-color:#1EAAAA22}50%{border-color:#1EAAAA88}}
-        @keyframes muteGlow{0%,100%{border-color:#E8A03022}50%{border-color:#E8A03088}}
-        *::-webkit-scrollbar{width:4px}*::-webkit-scrollbar-track{background:#06090F}
-        *::-webkit-scrollbar-thumb{background:#1A3050;border-radius:2px}
-        textarea:focus{border-color:#2E6A9A!important}button:hover{opacity:.85}
+        @keyframes lock888{0%,100%{box-shadow:0 0 4px ${THEME.purple}}50%{box-shadow:0 0 14px ${THEME.purple}}}
+        @keyframes pipeGlow{0%,100%{border-color:${THEME.teal}44}50%{border-color:${THEME.teal}CC}}
+        @keyframes muteGlow{0%,100%{border-color:${THEME.orange}44}50%{border-color:${THEME.orange}CC}}
+        *::-webkit-scrollbar{width:5px}*::-webkit-scrollbar-track{background:${THEME.bgCard}}
+        *::-webkit-scrollbar-thumb{background:${THEME.border};border-radius:3px}
+        textarea:focus{border-color:${THEME.blue}!important;box-shadow:0 0 0 2px ${THEME.blue}22!important}
+        button:hover{opacity:.80}
         .chart-clickable{cursor:pointer}
       `}</style>
 
       {/* HEADER */}
       <div style={S.header}>
         <div>
-          <div style={S.title}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.2</div>
+          <div style={S.title}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.7</div>
           <div style={S.subtitle}>
-            © HUDSON &amp; PERRY RESEARCH · MUTE:{USE_MUTE_MODE?"ON":"OFF"} · GATE:{USE_DRIFT_GATE?"ON":"OFF"} · REWIND:ON · ARCHITECT:ON · V1.5.2
+            © HUDSON &amp; PERRY RESEARCH · MUTE:{featMute?"ON":"OFF"} · GATE:{featGate?"ON":"OFF"} · PIPE:{featPipe?"ON":"OFF"} · REWIND:ON · V1.5.7
           </div>
           <div style={{display:"flex",gap:10,marginTop:3}}>
             <a href="https://x.com/RaccoonStampede" target="_blank" rel="noreferrer"
-              style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#4A9EFF",
+              style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#1560B0",
                 textDecoration:"none",letterSpacing:1,opacity:.7}}>
               𝕏 @RaccoonStampede
             </a>
             <a href="https://x.com/Prosperous727" target="_blank" rel="noreferrer"
-              style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#4A9EFF",
+              style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#1560B0",
                 textDecoration:"none",letterSpacing:1,opacity:.7}}>
               𝕏 @Prosperous727
             </a>
@@ -2417,50 +3657,50 @@ export default function HudsonPerryDriftV1() {
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           {constantsModified&&(
-            <div style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#E8A030",
+            <div style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#9A5C08",
               letterSpacing:1,padding:"3px 8px",border:"1px solid #E8A03044",
-              borderRadius:4,background:"#0A0800"}}>
+              borderRadius:4,background:"#FFF8EE"}}>
               ⚠ κ/ANCHOR MODIFIED
             </div>
           )}
           {lock888Achieved&&(
-            <div style={{fontFamily:"Courier New, monospace",fontSize:10,color:"#8888FF",
+            <div style={{fontFamily:"Courier New, monospace",fontSize:10,color:"#4848B8",
               letterSpacing:2,padding:"3px 10px",border:"1px solid #8888FF44",
-              borderRadius:4,background:"#0A0A1A",animation:"lock888 2s infinite"}}>
+              borderRadius:4,background:"#EEEEFF",animation:"lock888 2s infinite"}}>
               🔒 LOCK_888
             </div>
           )}
           {muteModeActive&&(
-            <div style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#E8A030",
+            <div style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#9A5C08",
               letterSpacing:1,padding:"3px 8px",border:"1px solid #E8A03033",
-              borderRadius:4,background:"#0A0800",animation:"muteGlow 1.5s infinite"}}>
+              borderRadius:4,background:"#FFF8EE",animation:"muteGlow 1.5s infinite"}}>
               🔇 MUTE
             </div>
           )}
           {driftGateActive&&(
-            <div style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#E05060",
+            <div style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#C81030",
               letterSpacing:1,padding:"3px 8px",border:"1px solid #E0506033",
-              borderRadius:4,background:"#0A0808"}}>
+              borderRadius:4,background:"#FFF1F2"}}>
               ⊘ GATE
             </div>
           )}
           {rewindTurn!==null&&(
             <div style={{display:"flex",gap:4,alignItems:"center"}}>
               <button onClick={()=>rewindTurn!==1?restoreToTurn(rewindTurn-1):null}
-                style={{padding:"4px 10px",background:"#0A1A0A",border:"1px solid #40D08044",
-                  borderRadius:4,color:"#40D080",cursor:"pointer",
+                style={{padding:"4px 10px",background:"#EEF8F2",border:"1px solid #40D08044",
+                  borderRadius:4,color:"#178040",cursor:"pointer",
                   fontSize:11,fontFamily:"Courier New, monospace",opacity:rewindTurn===1?0.3:1}}>
                 prev
               </button>
-              <button onClick={resumeLive} style={{padding:"6px 14px",background:"#0A2A0A",
-                border:"2px solid #40D080",borderRadius:4,color:"#40D080",cursor:"pointer",
+              <button onClick={resumeLive} style={{padding:"6px 14px",background:"#E8F4EC",
+                border:"2px solid #178040",borderRadius:4,color:"#178040",cursor:"pointer",
                 fontSize:11,fontFamily:"Courier New, monospace",letterSpacing:1,
                 fontWeight:"bold",animation:"pipeGlow 1.5s infinite"}}>
                 T{rewindTurn} LIVE
               </button>
               <button onClick={()=>rewindTurn!==turnSnapshots.length?restoreToTurn(rewindTurn+1):null}
-                style={{padding:"4px 10px",background:"#0A1A0A",border:"1px solid #40D08044",
-                  borderRadius:4,color:"#40D080",cursor:"pointer",
+                style={{padding:"4px 10px",background:"#EEF8F2",border:"1px solid #40D08044",
+                  borderRadius:4,color:"#178040",cursor:"pointer",
                   fontSize:11,fontFamily:"Courier New, monospace",
                   opacity:rewindTurn===turnSnapshots.length?0.3:1}}>
                 next
@@ -2470,52 +3710,52 @@ export default function HudsonPerryDriftV1() {
           <div style={S.modeBadge}>
             <div style={S.modeDot}/>
             <span style={S.modeLabel}>{currentMode.label}</span>
-            <span style={{fontFamily:"Courier New, monospace",fontSize:10,color:"#4A6880"}}>
+            <span style={{fontFamily:"Courier New, monospace",fontSize:10,color:"#1E3C5C"}}>
               γ_h={currentMode.gamma_h}
             </span>
           </div>
           <button style={S.exportBtn} onClick={()=>setShowExport(p=>!p)}>
             {showExport?"HIDE":"EXPORT"}
           </button>
-          <button style={{...S.exportBtn,borderColor:"#40D08044",color:"#40D080"}}
+          <button style={{...S.exportBtn,borderColor:"#40D08044",color:"#178040"}}
             onClick={()=>setShowTuning(p=>!p)}>
             {showTuning?"HIDE TUNE":`TUNE${activePreset!=="DEFAULT"?` · ${PRESETS[activePreset]?.label??activePreset}`:""}`}
           </button>
-          <button style={{...S.exportBtn,borderColor:"#4A9EFF44",color:"#4A9EFF"}}
+          <button style={{...S.exportBtn,borderColor:"#4A9EFF44",color:"#1560B0"}}
             onClick={()=>setShowGuide(p=>!p)}>
             {showGuide?"HIDE GUIDE":"GUIDE"}
           </button>
           <button style={{...S.logBtn,
               borderColor:errorLog.length>0?"#E0506044":"#4A9EFF44",
-              color:errorLog.length>0?"#E05060":"#4A9EFF"}}
+              color:errorLog.length>0?"#C81030":"#1560B0"}}
               onClick={()=>setShowLog(p=>!p)}>
               {showLog?"HIDE ARCHITECT":`ARCHITECT${eventLog.length>0||errorLog.length>0?` (${eventLog.length}${errorLog.length>0?` ⚠${errorLog.length}`:""})`:""}`}
             </button>
           {bookmarks.length>0&&(
-            <button style={{...S.logBtn,borderColor:"#C8860A44",color:"#C8860A"}}
+            <button style={{...S.logBtn,borderColor:"#C8860A44",color:"#906000"}}
               onClick={()=>setShowBookmarks(p=>!p)}>
               {showBookmarks?"HIDE SAVED":`★ SAVED (${bookmarks.length})`}
             </button>
           )}
           {messages.length>0&&(
-            <button style={{...S.logBtn,borderColor:"#40D08044",color:"#40D080"}}
+            <button style={{...S.logBtn,borderColor:"#40D08044",color:"#178040"}}
               onClick={()=>setExportContent(downloadChat(messages,coherenceData,eventLog,sessionId,userKappa,userAnchor))}>
               CHAT
             </button>
           )}
           {coherenceData.length>0&&(
-            <button style={{...S.logBtn,borderColor:"#8888FF44",color:"#8888FF"}}
+            <button style={{...S.logBtn,borderColor:"#8888FF44",color:"#4848B8"}}
               onClick={()=>setExportContent(downloadResearch(coherenceData,eventLog,sessionId,userKappa,userAnchor,activePreset,researchNotes))}>
               RESEARCH
             </button>
           )}
           {coherenceData.length>0&&(
-            <button style={{...S.logBtn,borderColor:"#4A9EFF44",color:"#4A9EFF"}}
+            <button style={{...S.logBtn,borderColor:"#4A9EFF44",color:"#1560B0"}}
               onClick={()=>setExportContent(downloadSdePaths(livePaths,coherenceData,sessionId,nPaths,userKappa))}>
               SDE
             </button>
           )}
-          <button style={{...S.logBtn,borderColor:"#C8860A44",color:"#C8860A"}}
+          <button style={{...S.logBtn,borderColor:"#C8860A44",color:"#906000"}}
           onClick={()=>setShowNotes(p=>!p)}>
           {showNotes?"HIDE NOTES":"NOTES"}
         </button>
@@ -2526,23 +3766,23 @@ export default function HudsonPerryDriftV1() {
       {/* API KEY */}
       <div style={S.apiKeyRow}>
         <span style={{fontFamily:"Courier New, monospace",fontSize:9,
-          color:apiKeyValid?"#40D080":"#4A6880",letterSpacing:2,flexShrink:0}}>
+          color:apiKeyValid?"#178040":"#1E3C5C",letterSpacing:2,flexShrink:0}}>
           {apiKeyValid?"🔑 KEY SET":"🔑 API KEY"}
         </span>
         <input type={showApiKey?"text":"password"} value={apiKey} onChange={e=>setApiKey(e.target.value)}
           placeholder="sk-ant-... (optional in artifact)"
-          style={{flex:1,background:"#0A1020",border:`1px solid ${apiKeyValid?"#1EAAAA44":"#1A3050"}`,
-            borderRadius:4,color:"#7AB8D8",padding:"4px 10px",
+          style={{flex:1,background:"#EEF2F7",border:`1px solid ${apiKeyValid?"#1EAAAA44":"#C0D0E4"}`,
+            borderRadius:4,color:"#0E2A5A",padding:"4px 10px",
             fontFamily:"Courier New, monospace",fontSize:11,outline:"none"}}/>
         <button onClick={()=>setShowApiKey(p=>!p)}
           style={{...S.resetBtn,padding:"2px 8px",fontSize:9}}>{showApiKey?"HIDE":"SHOW"}</button>
         {apiKey.trim().length>0&&!apiKeyValid&&(
-          <span style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#E05060",flexShrink:0}}>
+          <span style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#C81030",flexShrink:0}}>
             must start with sk-
           </span>
         )}
         <a href="https://console.anthropic.com" target="_blank" rel="noreferrer"
-          style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#2A5070",
+          style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#0E3060",
             textDecoration:"none",flexShrink:0}}>get key ↗</a>
       </div>
 
@@ -2555,13 +3795,13 @@ export default function HudsonPerryDriftV1() {
           :calmStreak>=3?"✓ STABLE — AI is coherent and on-task"
           :driftCount>4?"⚠ DRIFT DETECTED — Harness is correcting the AI"
           :"◆ MONITORING — Session looks normal";
-        const barColor=smoothedVar===null?"#2A4060"
-          :smoothedVar>VAR_DECOHERENCE?"#E05060"
-          :smoothedVar>VAR_CAUTION?"#E8A030"
-          :lock888Achieved||calmStreak>=3?"#40D080"
-          :driftCount>4?"#E8A030":"#4A7090";
+        const barColor=smoothedVar===null?"#2E5070"
+          :smoothedVar>VAR_DECOHERENCE?"#C81030"
+          :smoothedVar>VAR_CAUTION?"#9A5C08"
+          :lock888Achieved||calmStreak>=3?"#178040"
+          :driftCount>4?"#9A5C08":"#1E3C5C";
         return (
-          <div style={{padding:"4px 20px",background:"#070A10",
+          <div style={{padding:"4px 20px",background:"#F6F8FC",
             borderBottom:"1px solid #1A3050",
             display:"flex",alignItems:"center",gap:8}}>
             <div style={{width:6,height:6,borderRadius:"50%",
@@ -2569,7 +3809,7 @@ export default function HudsonPerryDriftV1() {
             <span style={{fontFamily:"Courier New, monospace",fontSize:10,
               color:barColor,letterSpacing:1}}>{statusText}</span>
             {turnCount>0&&<span style={{fontFamily:"Courier New, monospace",
-              fontSize:9,color:"#2A4060",marginLeft:"auto"}}>
+              fontSize:9,color:"#2E5070",marginLeft:"auto"}}>
               Turn {turnCount} · Avg C: {coherenceData.length?(coherenceData.reduce((s,d)=>s+d.raw,0)/coherenceData.length).toFixed(3):"—"}
             </span>}
           </div>
@@ -2578,17 +3818,17 @@ export default function HudsonPerryDriftV1() {
 
       {/* EXPORT PANEL */}
       {showExport&&(
-        <div style={{background:"#050810",borderBottom:"1px solid #1EAAAA44",padding:"12px 20px"}}>
+        <div style={{background:"#F8FAFC",borderBottom:"1px solid #1EAAAA44",padding:"12px 20px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <span style={{...S.sectionTitle,marginBottom:0,color:"#1EAAAA"}}>
-              MISSION PROTOCOL — HUDSON &amp; PERRY ARCHITECT V1.5.2
+            <span style={{...S.sectionTitle,marginBottom:0,color:"#0A7878"}}>
+              MISSION PROTOCOL — HUDSON &amp; PERRY ARCHITECT V1.5.7
             </span>
-            <button style={{...S.exportBtn,background:copied?"#0A2A2A":"transparent",
-              color:copied?"#40D080":"#1EAAAA"}} onClick={handleCopyExport}>
+            <button style={{...S.exportBtn,background:copied?"#E4F4F4":"transparent",
+              color:copied?"#178040":"#0A7878"}} onClick={handleCopyExport}>
               {copied?"✓ COPIED":"COPY"}
             </button>
           </div>
-          <pre style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#4A8090",
+          <pre style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#0A5070",
             lineHeight:1.7,margin:0,maxHeight:200,overflowY:"auto",
             whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{exportBlock}</pre>
         </div>
@@ -2596,21 +3836,21 @@ export default function HudsonPerryDriftV1() {
 
       {/* RESEARCH NOTES PANEL */}
       {showNotes&&(
-        <div style={{background:"#050810",borderBottom:"1px solid #C8860A44",padding:"12px 20px"}}>
+        <div style={{background:"#F8FAFC",borderBottom:"1px solid #C8860A44",padding:"12px 20px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <span style={{fontFamily:"Courier New, monospace",fontSize:9,
-              color:"#C8860A",letterSpacing:2}}>RESEARCH NOTES — stamped on RESEARCH export</span>
-            <span style={{fontFamily:"Courier New, monospace",fontSize:7,color:"#2A4060"}}>
+              color:"#906000",letterSpacing:2}}>RESEARCH NOTES — stamped on RESEARCH export</span>
+            <span style={{fontFamily:"Courier New, monospace",fontSize:7,color:"#2E5070"}}>
               {researchNotes.length} chars
             </span>
           </div>
           <textarea value={researchNotes} onChange={e=>setResearchNotes(e.target.value)}
             placeholder={"Hypothesis, custom SDE values, theory notes...\n\nExample: Testing α=-0.40 (aggressive mean-reversion). Expected: tighter Kalman bands."}
-            style={{width:"100%",minHeight:110,background:"#0A1020",
+            style={{width:"100%",minHeight:110,background:"#EEF2F7",
               border:"1px solid #C8860A33",borderRadius:4,color:"#C8A060",
               padding:"8px 12px",fontFamily:"Courier New, monospace",fontSize:9,
               lineHeight:1.7,resize:"vertical",outline:"none",boxSizing:"border-box"}}/>
-          <div style={{fontFamily:"Courier New, monospace",fontSize:7,color:"#2A4060",marginTop:4}}>
+          <div style={{fontFamily:"Courier New, monospace",fontSize:7,color:"#2E5070",marginTop:4}}>
             Saved automatically · Persists across resets · Exported with RESEARCH
           </div>
         </div>
@@ -2626,16 +3866,16 @@ export default function HudsonPerryDriftV1() {
               <div style={{margin:"auto",textAlign:"center",
                 fontFamily:"Courier New, monospace",fontSize:11,lineHeight:2}}>
                 <div style={{fontSize:28,marginBottom:12,opacity:.3}}>⬡</div>
-                <div style={{opacity:.5,marginBottom:4}}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.2</div>
+                <div style={{opacity:.5,marginBottom:4}}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.7</div>
                 <div style={{fontSize:9,letterSpacing:2,opacity:.4}}>
                   SDE · KALMAN · GARCH · TF-IDF · JSD · RAG · PIPE · MUTE · GATE · REWIND · ARCHITECT
                 </div>
-                <div style={{fontSize:8,color:"#2A4060",marginTop:4,opacity:.5}}>
+                <div style={{fontSize:8,color:"#2E5070",marginTop:4,opacity:.5}}>
                   TAP 📎 TO ATTACH · CLICK CHART TO REWIND
                 </div>
-                <div style={{marginTop:12,padding:"8px 16px",background:"#0A1020",
+                <div style={{marginTop:12,padding:"8px 16px",background:"#EEF2F7",
                   borderRadius:4,border:"1px solid #1EAAAA33",
-                  fontFamily:"Courier New, monospace",fontSize:8,color:"#1EAAAA",
+                  fontFamily:"Courier New, monospace",fontSize:8,color:"#0A7878",
                   lineHeight:1.7,opacity:.8}}>
                   NEW? Click <strong>GUIDE</strong> in the header to learn how to read the chart.<br/>
                   Recommended: start with DEFAULT preset · post-audit OFF · 50 SDE paths.<br/>
@@ -2643,13 +3883,13 @@ export default function HudsonPerryDriftV1() {
                 </div>
                 <div style={{display:"flex",justifyContent:"center",gap:16,marginTop:14}}>
                   <a href="https://x.com/RaccoonStampede" target="_blank" rel="noreferrer"
-                    style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#4A9EFF",
+                    style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#1560B0",
                       textDecoration:"none",letterSpacing:1,opacity:.6,
                       padding:"4px 10px",border:"1px solid #4A9EFF22",borderRadius:4}}>
                     𝕏 @RaccoonStampede
                   </a>
                   <a href="https://x.com/Prosperous727" target="_blank" rel="noreferrer"
-                    style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#4A9EFF",
+                    style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#1560B0",
                       textDecoration:"none",letterSpacing:1,opacity:.6,
                       padding:"4px 10px",border:"1px solid #4A9EFF22",borderRadius:4}}>
                     𝕏 @Prosperous727
@@ -2659,9 +3899,9 @@ export default function HudsonPerryDriftV1() {
             )}
 
             {rewindTurn!==null&&(
-              <div style={{padding:"6px 12px",background:"#0A1A0A",border:"1px solid #40D08033",
+              <div style={{padding:"6px 12px",background:"#EEF8F2",border:"1px solid #40D08033",
                 borderRadius:6,fontFamily:"Courier New, monospace",fontSize:9,
-                color:"#40D080",letterSpacing:1,textAlign:"center"}}>
+                color:"#178040",letterSpacing:1,textAlign:"center"}}>
                 ⟲ VIEWING TURN {rewindTurn} STATE — Continue typing to resume from here, or click RESUME LIVE
               </div>
             )}
@@ -2681,7 +3921,7 @@ export default function HudsonPerryDriftV1() {
                     {!isUser&&ti>=0&&<button onClick={()=>deleteTurn(ti)}
                         title="Delete turn"
                         style={{background:"none",border:"1px solid #2A4060",borderRadius:3,
-                          color:"#3A5870",cursor:"pointer",fontSize:9,padding:"1px 5px",
+                          color:"#2E5070",cursor:"pointer",fontSize:9,padding:"1px 5px",
                           fontFamily:"Courier New, monospace",lineHeight:1.4,opacity:0.5}}>x</button>}
                     {!isUser&&ti>=0&&(()=>{
                       const isBookmarked=bookmarks.some(b=>b.cohIdx===ti);
@@ -2689,8 +3929,8 @@ export default function HudsonPerryDriftV1() {
                         <button onClick={()=>toggleBookmark(ti)}
                           title={isBookmarked?"Remove bookmark":"Bookmark this turn"}
                           style={{background:"none",
-                            border:`1px solid ${isBookmarked?"#C8860A88":"#2A4060"}`,
-                            borderRadius:3,color:isBookmarked?"#C8860A":"#3A5870",
+                            border:`1px solid ${isBookmarked?"#C8860A88":"#2E5070"}`,
+                            borderRadius:3,color:isBookmarked?"#906000":"#2E5070",
                             cursor:"pointer",fontSize:10,padding:"1px 5px",
                             fontFamily:"Courier New, monospace",lineHeight:1.4,
                             opacity:isBookmarked?1:0.5}}>
@@ -2718,7 +3958,7 @@ export default function HudsonPerryDriftV1() {
                       </div>
                     )}
                     {!isUser&&drifted&&(
-                      <div style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#E05060",
+                      <div style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#C81030",
                         letterSpacing:2,marginBottom:6,borderBottom:"1px solid #E0506033",paddingBottom:5}}>
                         ⚠ DRIFT DETECTED — HARNESS ENGAGED
                         <span style={{display:"block",fontSize:8,color:"#A05060",
@@ -2733,22 +3973,22 @@ export default function HudsonPerryDriftV1() {
                     {cdata&&(
                       <div style={{marginTop:6,display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
                         <ScoreBadge score={cdata.raw} kalman={cdata.kalman}/>
-                        <span style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#2A4060"}}>
+                        <span style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#2E5070"}}>
                           K={cdata.kalman.toFixed(3)}
                         </span>
                         {cdata.smoothedVar!=null&&(
                           <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                            color:cdata.smoothedVar>VAR_DECOHERENCE?"#E05060"
-                              :cdata.smoothedVar>VAR_CAUTION?"#E8A030"
-                              :cdata.smoothedVar<VAR_CALM?"#40D080":"#7AB8D8"}}>
+                            color:cdata.smoothedVar>VAR_DECOHERENCE?"#C81030"
+                              :cdata.smoothedVar>VAR_CAUTION?"#9A5C08"
+                              :cdata.smoothedVar<VAR_CALM?"#178040":"#0E2A5A"}}>
                             σ²={cdata.smoothedVar.toFixed(4)}
                           </span>
                         )}
                         {cdata.sourceScore!=null&&(
                           <span style={{fontFamily:"Courier New, monospace",fontSize:8,
                             padding:"1px 5px",borderRadius:3,
-                            background:cdata.sourceScore>0.15?"#0A2A1A":"#1A0808",
-                            color:cdata.sourceScore>0.15?"#40D080":"#E05060",
+                            background:cdata.sourceScore>0.15?"#E8F4EC":"#FEF0F0",
+                            color:cdata.sourceScore>0.15?"#178040":"#C81030",
                             border:`1px solid ${cdata.sourceScore>0.15?"#40D08033":"#E0506033"}`}}>
                             {cdata.sourceScore>0.15?"✓ SRC":"⚠ SRC"}
                           </span>
@@ -2756,7 +3996,7 @@ export default function HudsonPerryDriftV1() {
                         {cdata.hallucinationFlag&&(
                           <span style={{fontFamily:"Courier New, monospace",fontSize:8,
                             padding:"1px 5px",borderRadius:3,
-                            background:"#1A0A00",color:"#E8A030",
+                            background:"#FFF4E8",color:"#9A5C08",
                             border:"1px solid #E8A03033"}}
                             title={cdata.hallucinationSignals?.join(" | ")||""}>
                             ⚠ H-SIG
@@ -2765,7 +4005,7 @@ export default function HudsonPerryDriftV1() {
                         {cdata.behavioralFlag&&(
                           <span style={{fontFamily:"Courier New, monospace",fontSize:8,
                             padding:"1px 5px",borderRadius:3,
-                            background:"#0A0A1A",color:"#8888FF",
+                            background:"#EEEEFF",color:"#4848B8",
                             border:"1px solid #8888FF33"}}
                             title={cdata.behavioralSignals?.map(s=>s.type).join(" | ")||""}>
                             ⚠ B-SIG
@@ -2800,7 +4040,7 @@ export default function HudsonPerryDriftV1() {
           {fileError&&(
             <div style={{
               ...S.errorBar,
-              color: fileError.startsWith("⚠")?"#E05060":"#1EAAAA",
+              color: fileError.startsWith("⚠")?"#C81030":"#0A7878",
               borderTopColor: fileError.startsWith("⚠")?"#E0506033":"#1EAAAA33",
             }}>{fileError}</div>
           )}
@@ -2809,15 +4049,15 @@ export default function HudsonPerryDriftV1() {
           {statusMessage&&!fileError&&(
             <div style={{
               ...S.errorBar,
-              color:"#40D080",
+              color:"#178040",
               borderTopColor:"#40D08033",
             }}>{statusMessage}</div>
           )}
 
           <div style={S.inputRow}>
             <label style={{...S.attachBtn,
-              borderColor:attachments.length>0?"#1EAAAA":"#1A3050",
-              color:attachments.length>0?"#1EAAAA":"#4A7090",cursor:"pointer"}}>
+              borderColor:attachments.length>0?"#0A7878":"#C0D0E4",
+              color:attachments.length>0?"#0A7878":"#1E3C5C",cursor:"pointer"}}>
               📎
               <input type="file" multiple accept={ACCEPTED_EXTENSIONS}
                 onChange={e=>{processFiles(e.target.files);e.target.value="";}}
@@ -2826,10 +4066,10 @@ export default function HudsonPerryDriftV1() {
             </label>
             <textarea ref={inputRef} rows={2} style={S.textarea}
               placeholder={attachments.length?"Add message or send as-is…":"Message… (Enter to send)"}
-              value={input} onChange={e=>setInput(e.target.value)} onKeyDown={handleKey}/>
-            <button style={{...S.sendBtn,opacity:(isLoading||(!input.trim()&&!attachments.length))?0.4:1}}
+              onChange={e=>{inputValueRef.current=e.target.value;setHasInput(!!e.target.value);}} onKeyDown={handleKey}/>
+            <button style={{...S.sendBtn,opacity:(isLoading||(!hasInput&&!attachments.length))?0.4:1}}
               onClick={sendMessage}
-              disabled={isLoading||(!input.trim()&&!attachments.length)}>SEND</button>
+              disabled={isLoading||(!hasInput&&!attachments.length)}>SEND</button>
           </div>
         </div>
 
@@ -2843,31 +4083,31 @@ export default function HudsonPerryDriftV1() {
           <div style={{flex:"0 0 160px",padding:"0 8px 8px 0",overflow:"hidden"}}>
             {chartData.length===0
               ?<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",
-                  fontFamily:"Courier New, monospace",fontSize:10,color:"#2A4060",letterSpacing:2}}>AWAITING DATA</div>
+                  fontFamily:"Courier New, monospace",fontSize:10,color:"#2E5070",letterSpacing:2}}>AWAITING DATA</div>
               :(
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={chartData}
                     margin={{top:8,right:12,bottom:4,left:0}}
                     onClick={handleChartClick}
                     className="chart-clickable">
-                    <CartesianGrid strokeDasharray="2 4" stroke="#0E1E30"/>
-                    <XAxis dataKey="turn" tick={{fontSize:9,fill:"#3A5870",fontFamily:"Courier New"}}/>
-                    <YAxis domain={[.2,1.0]} tick={{fontSize:9,fill:"#3A5870",fontFamily:"Courier New"}}
+                    <CartesianGrid strokeDasharray="2 4" stroke="#D8E4EE"/>
+                    <XAxis dataKey="turn" tick={{fontSize:9,fill:"#2E5070",fontFamily:"Courier New"}}/>
+                    <YAxis domain={[.2,1.0]} tick={{fontSize:9,fill:"#2E5070",fontFamily:"Courier New"}}
                       tickFormatter={v=>v.toFixed(1)}/>
                     <Tooltip content={<CoherenceTooltip/>}/>
-                    <Area type="monotone" dataKey="p90" stroke="none" fill="#0E4A7A" fillOpacity={.25} name="90th pct"/>
-                    <Area type="monotone" dataKey="p10" stroke="none" fill="#06090F" fillOpacity={1} name="10th pct"/>
+                    <Area type="monotone" dataKey="p90" stroke="none" fill="#5090C0" fillOpacity={.18} name="90th pct"/>
+                    <Area type="monotone" dataKey="p10" stroke="none" fill="#D8E8F8" fillOpacity={0.9} name="10th pct"/>
                     <Line type="monotone" dataKey="floor" stroke="#9B2335" strokeWidth={1}
                       strokeDasharray="3 3" dot={false} name="DL floor"/>
-                    <Line type="monotone" dataKey="kalman" stroke="#1EAAAA" strokeWidth={2}
+                    <Line type="monotone" dataKey="kalman" stroke="#0A7878" strokeWidth={2}
                       dot={false} name="Kalman"/>
-                    <Scatter dataKey="raw" fill="#C8860A" name="Raw C" r={3}/>
+                    <Scatter dataKey="raw" fill="#906000" name="Raw C" r={3}/>
                     <Line type="monotone" dataKey="raw" stroke="#C8860A44" strokeWidth={1}
-                      dot={{fill:"#C8860A",r:3}} name="Score"/>
-                    <Scatter dataKey="harness" fill="#E05060" name="Drift" r={5}/>
+                      dot={{fill:"#906000",r:3}} name="Score"/>
+                    <Scatter dataKey="harness" fill="#C81030" name="Drift" r={5}/>
                     {rewindTurn!==null&&(
                       <Line type="monotone" dataKey={d=>d.turn===rewindTurn?1:null}
-                        stroke="#40D080" strokeWidth={0} dot={{fill:"#40D080",r:7,strokeWidth:0}} name="Rewind"/>
+                        stroke="#178040" strokeWidth={0} dot={{fill:"#178040",r:7,strokeWidth:0}} name="Rewind"/>
                     )}
                   </ComposedChart>
                 </ResponsiveContainer>
@@ -2882,29 +4122,29 @@ export default function HudsonPerryDriftV1() {
               {/* V1.5.0: active preset badge */}
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
                 <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                  color:"#2A4060",letterSpacing:2}}>PROFILE</span>
+                  color:"#2E5070",letterSpacing:2}}>PROFILE</span>
                 <span style={{fontFamily:"Courier New, monospace",fontSize:9,
                   padding:"1px 8px",borderRadius:3,
-                  color:PRESETS[activePreset]?.color??"#7AB8D8",
-                  border:`1px solid ${PRESETS[activePreset]?.color??"#7AB8D8"}33`,
-                  background:`${PRESETS[activePreset]?.color??"#7AB8D8"}0A`}}>
+                  color:PRESETS[activePreset]?.color??"#0E2A5A",
+                  border:`1px solid ${PRESETS[activePreset]?.color??"#0E2A5A"}33`,
+                  background:`${PRESETS[activePreset]?.color??"#0E2A5A"}0A`}}>
                   {PRESETS[activePreset]?.label??activePreset}
                 </span>
                 <span style={{fontFamily:"Courier New, monospace",fontSize:7,
-                  color:"#2A4060"}}>
+                  color:"#2E5070"}}>
                   {[!featKalman&&"K",!featGARCH&&"G",!featSDE&&"S",!featRAG&&"R",
                     !featPipe&&"P",!featBSig&&"B",!featHSig&&"H"].filter(Boolean).join(" ")||"all on"}
                 </span>
               </div>
               {(()=>{
                 const health=computeSessionHealth(coherenceData,driftCount,smoothedVar,calmStreak,lock888Achieved,cfg);
-                const hColor=health===null?"#3A5870":health>=75?"#40D080":health>=50?"#E8A030":"#E05060";
+                const hColor=health===null?"#2E5070":health>=75?"#178040":health>=50?"#9A5C08":"#C81030";
                 const hLabel=health===null?"—":health>=75?"STRONG":health>=50?"FAIR":"WEAK";
                 return health!==null?(
                   <div style={{marginBottom:8,padding:"6px 10px",borderRadius:4,
                     background:`${hColor}0A`,border:`1px solid ${hColor}33`,
                     display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#4A6880",letterSpacing:2}}>SESSION HEALTH</span>
+                    <span style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#1E3C5C",letterSpacing:2}}>SESSION HEALTH</span>
                     <span style={{fontFamily:"Courier New, monospace",fontSize:16,color:hColor,fontWeight:"bold",letterSpacing:1}}>
                       {health}<span style={{fontSize:10,opacity:.7}}>/100</span>
                       <span style={{fontSize:9,marginLeft:6,opacity:.8}}>{hLabel}</span>
@@ -2913,26 +4153,26 @@ export default function HudsonPerryDriftV1() {
                 ):null;
               })()}
               {[
-                ["κ → DAMPING",  `${KAPPA} → ${DAMPING.toFixed(4)}`,"#C8860A"],
+                ["κ → DAMPING",  `${KAPPA} → ${DAMPING.toFixed(4)}`,"#906000"],
                 ["γ_h",          currentMode.gamma_h,               currentMode.color],
                 ["cap_eff",      cap_eff.toFixed(8),                  null],
-                ["Drift events", driftCount,                          driftCount>0?"#E05060":"#40D080"],
+                ["Drift events", driftCount,                          driftCount>0?"#C81030":"#178040"],
                 ["Last C",       lastScore!=null?lastScore.toFixed(4):"—",
-                  lastScore==null?"#3A5870":lastScore>.80?"#40D080":lastScore>.65?"#E8A030":"#E05060"],
-                ["Kalman x̂",    kalmanState.x.toFixed(4),            "#1EAAAA"],
+                  lastScore==null?"#2E5070":lastScore>.80?"#178040":lastScore>.65?"#9A5C08":"#C81030"],
+                ["Kalman x̂",    kalmanState.x.toFixed(4),            "#0A7878"],
                 ["Kalman P",     kalmanState.P.toFixed(5),             null],
-                ["Snapshots",    turnSnapshots.length,                 turnSnapshots.length>0?"#40D080":"#3A5870"],
+                ["Snapshots",    turnSnapshots.length,                 turnSnapshots.length>0?"#178040":"#2E5070"],
               ].map(([label,val,color])=>(
                 <div key={label} style={S.statRow}>
                   <span style={S.statLabel}>{label}</span>
                   <span style={{...S.statValue,...(color?{color}:{})}}>{val}</span>
                 </div>
               ))}
-              {featZeroDrift&&<div style={{marginTop:8,padding:"8px 10px",borderRadius:4,background:"#0A1020",
+              {featZeroDrift&&<div style={{marginTop:8,padding:"8px 10px",borderRadius:4,background:"#EEF2F7",
                 border:`1px solid ${lockStatus.locked?"#1EAAAA44":"#2A405044"}`}}>
                 <div style={{...S.sectionTitle,marginBottom:6}}>ZERO-DRIFT · {RESONANCE_ANCHOR} Hz</div>
                 {[
-                  ["Status",  lockStatus.locked?"🔒 ACHIEVED":"CONVERGING",lockStatus.locked?"#40D080":"#E8A030"],
+                  ["Status",  lockStatus.locked?"🔒 ACHIEVED":"CONVERGING",lockStatus.locked?"#178040":"#9A5C08"],
                   ["Residual",`${lockStatus.residual.toFixed(8)} Hz`,null],
                   ["Iters",   lockStatus.iters,null],
                 ].map(([label,val,color])=>(
@@ -2958,15 +4198,15 @@ export default function HudsonPerryDriftV1() {
               {/* V1.5.0: token estimate + session ID */}
               {tokenEstimate>0&&(
                 <div style={{marginBottom:8,padding:"4px 8px",borderRadius:3,
-                  background:tokenEstimate>70000?"#150808":tokenEstimate>40000?"#0A0A00":"#0A0E18",
-                  border:`1px solid ${tokenEstimate>70000?"#E0506044":tokenEstimate>40000?"#E8A03033":"#1A2840"}`}}>
+                  background:tokenEstimate>70000?"#FFF0F2":tokenEstimate>40000?"#F2F4F8":"#F2F4F8",
+                  border:`1px solid ${tokenEstimate>70000?"#E0506044":tokenEstimate>40000?"#E8A03033":"#C8D8EC"}`}}>
                   <div style={{display:"flex",justifyContent:"space-between"}}>
                     <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                      color:tokenEstimate>70000?"#E05060":tokenEstimate>40000?"#E8A030":"#2A4060"}}>
+                      color:tokenEstimate>70000?"#C81030":tokenEstimate>40000?"#9A5C08":"#2E5070"}}>
                       EST. TOKENS
                     </span>
                     <span style={{fontFamily:"Courier New, monospace",fontSize:9,
-                      color:tokenEstimate>70000?"#E05060":tokenEstimate>40000?"#E8A030":"#4A6880",
+                      color:tokenEstimate>70000?"#C81030":tokenEstimate>40000?"#9A5C08":"#1E3C5C",
                       fontWeight:"bold"}}>
                       {tokenEstimate.toLocaleString()}
                       {tokenEstimate>70000?" ⚠":tokenEstimate>40000?" △":""}
@@ -2987,19 +4227,19 @@ export default function HudsonPerryDriftV1() {
               {[
                 ["Smoothed σ²",   smoothedVar!=null?smoothedVar.toFixed(6):"—",  varColor],
                 ["State",         varLabel,                                         varColor],
-                ["Calm streak",   calmStreak,                                       calmStreak>=LOCK_888_STREAK?"#8888FF":"#4A6880"],
+                ["Calm streak",   calmStreak,                                       calmStreak>=LOCK_888_STREAK?"#4848B8":"#1E3C5C"],
                 ["LOCK_888",      lock888Achieved?"✓ ACHIEVED":`${LOCK_888_STREAK-calmStreak} away`,
-                  lock888Achieved?"#8888FF":"#3A5870"],
+                  lock888Achieved?"#4848B8":"#2E5070"],
                 ["Mute mode",     muteModeActive?"ACTIVE — "+MUTE_MAX_TOKENS+" tok":"standby",
-                  muteModeActive?"#E8A030":"#3A5870"],
+                  muteModeActive?"#9A5C08":"#2E5070"],
                 ["Drift gate",    driftGateActive?"ACTIVE — "+DRIFT_GATE_WORD_LIMIT+" words":"standby",
-                  driftGateActive?"#E05060":"#3A5870"],
+                  driftGateActive?"#C81030":"#2E5070"],
                 ["Events",        eventLog.length,
-                  eventLog.length>0?"#4A9EFF":"#3A5870"],
+                  eventLog.length>0?"#1560B0":"#2E5070"],
                 ["H-Signals",     eventLog.filter(e=>e.type==="probable_hallucination_signal").length,
-                  eventLog.filter(e=>e.type==="probable_hallucination_signal").length>0?"#E8A030":"#3A5870"],
+                  eventLog.filter(e=>e.type==="probable_hallucination_signal").length>0?"#9A5C08":"#2E5070"],
                 ["B-Signals",     eventLog.filter(e=>e.type==="behavioral_signal").length,
-                  eventLog.filter(e=>e.type==="behavioral_signal").length>0?"#8888FF":"#3A5870"],
+                  eventLog.filter(e=>e.type==="behavioral_signal").length>0?"#4848B8":"#2E5070"],
               ].map(([label,val,color])=>(
                 <div key={label} style={S.statRow}>
                   <span style={S.statLabel}>{label}</span>
@@ -3013,9 +4253,9 @@ export default function HudsonPerryDriftV1() {
               <div style={S.metricSection}>
                 <div style={S.sectionTitle}>RAG MEMORY</div>
                 {[
-                  ["Cache",     ragCache.length,  ragCache.length>0?"#40D080":"#3A5870"],
-                  ["Retrievals",ragHits,           ragHits>0?"#1EAAAA":"#3A5870"],
-                  ["Pruning",   contextPruned?"ACTIVE":`>${PRUNE_THRESHOLD} to trigger`,contextPruned?"#E8A030":"#3A5870"],
+                  ["Cache",     ragCache.length,  ragCache.length>0?"#178040":"#2E5070"],
+                  ["Retrievals",ragHits,           ragHits>0?"#0A7878":"#2E5070"],
+                  ["Pruning",   contextPruned?"ACTIVE":`>${PRUNE_THRESHOLD} to trigger`,contextPruned?"#9A5C08":"#2E5070"],
                 ].map(([label,val,color])=>(
                   <div key={label} style={S.statRow}>
                     <span style={S.statLabel}>{label}</span>
@@ -3024,8 +4264,8 @@ export default function HudsonPerryDriftV1() {
                 ))}
                 {ragCache.slice(0,3).map(e=>(
                   <div key={e.turn} style={{fontFamily:"Courier New, monospace",fontSize:8,
-                    color:"#2A5070",lineHeight:1.6,marginTop:3,
-                    padding:"3px 6px",background:"#0A1020",borderRadius:3}}>
+                    color:"#0E3060",lineHeight:1.6,marginTop:3,
+                    padding:"3px 6px",background:"#EEF2F7",borderRadius:3}}>
                     T{e.turn} C={e.score.toFixed(3)} — {e.text.slice(0,55)}…
                   </div>
                 ))}
@@ -3035,22 +4275,22 @@ export default function HudsonPerryDriftV1() {
             {/* Error Trace */}
             {errorLog.length>0&&(
               <div style={S.metricSection}>
-                <div style={{...S.sectionTitle,color:"#E05060"}}>ARCHITECT · {errorLog.length}{corrections.length>0?" · "+corrections.length+" FP":""}</div>
+                <div style={{...S.sectionTitle,color:"#C81030"}}>ARCHITECT · {errorLog.length}{corrections.length>0?" · "+corrections.length+" FP":""}</div>
                 {errorLog.slice(-5).map((e,i)=>{
-                  const sc=e.severity==="fatal"?"#FF4444":e.severity==="warn"?"#E8A030":"#E05060";
+                  const sc=e.severity==="fatal"?"#FF4444":e.severity==="warn"?"#9A5C08":"#C81030";
                   return (
                     <div key={i} style={{fontFamily:"Courier New, monospace",fontSize:8,
                       lineHeight:1.6,marginBottom:4,
-                      padding:"4px 6px",background:"#150808",borderRadius:3,
+                      padding:"4px 6px",background:"#FFF0F2",borderRadius:3,
                       borderLeft:`2px solid ${sc}66`}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
                         <span style={{color:sc,letterSpacing:1}}>
                           [{e.severity?.toUpperCase()||"ERR"}] {e.stage?.toUpperCase().split("_").join(" ")}
                         </span>
-                        <span style={{color:"#3A5870"}}>T{e.turn} · {e.timestamp?.slice(11,19)}</span>
+                        <span style={{color:"#2E5070"}}>T{e.turn} · {e.timestamp?.slice(11,19)}</span>
                       </div>
                       <div style={{color:"#C05050"}}>{e.message?.slice(0,80)}{e.message?.length>80?"…":""}</div>
-                      {e.hint&&<div style={{color:"#E8A03099",fontSize:7,marginTop:2}}>💡 {e.hint?.slice(0,60)}</div>}
+                      {e.hint&&<div style={{color:"#9A5C0899",fontSize:7,marginTop:2}}>💡 {e.hint?.slice(0,60)}</div>}
                     </div>
                   );
                 })}
@@ -3065,9 +4305,9 @@ export default function HudsonPerryDriftV1() {
                   <button key={key} onClick={()=>setHarnessMode(key)} style={{
                     padding:"4px 10px",borderRadius:4,cursor:"pointer",
                     fontFamily:"Courier New, monospace",fontSize:9,letterSpacing:1,
-                    border:`1px solid ${key===harnessMode?mode.color:"#1A3050"}`,
+                    border:`1px solid ${key===harnessMode?mode.color:"#C0D0E4"}`,
                     background:key===harnessMode?`${mode.color}18`:"transparent",
-                    color:key===harnessMode?mode.color:"#3A5870",transition:"all .15s",
+                    color:key===harnessMode?mode.color:"#2E5070",transition:"all .15s",
                   }}>{mode.label}</button>
                 ))}
               </div>
@@ -3079,8 +4319,8 @@ export default function HudsonPerryDriftV1() {
                     <span style={S.statLabel}>Trigger at</span>
                     <input type="number" min="4" max="20" value={pruneThreshold}
                       onChange={e=>setPruneThreshold(Math.max(4,Math.min(20,+e.target.value)))}
-                      style={{width:42,background:"#0A1020",border:"1px solid #1A3050",
-                        borderRadius:3,color:"#7AB8D8",padding:"2px 6px",
+                      style={{width:42,background:"#EEF2F7",border:"1px solid #C0D0E4",
+                        borderRadius:3,color:"#0E2A5A",padding:"2px 6px",
                         fontFamily:"Courier New, monospace",fontSize:10,textAlign:"center"}}/>
                     <span style={S.statLabel}>turns</span>
                   </div>
@@ -3088,14 +4328,14 @@ export default function HudsonPerryDriftV1() {
                     <span style={S.statLabel}>Keep top</span>
                     <input type="number" min="2" max="10" value={pruneKeep}
                       onChange={e=>setPruneKeep(Math.max(2,Math.min(10,+e.target.value)))}
-                      style={{width:42,background:"#0A1020",border:"1px solid #1A3050",
-                        borderRadius:3,color:"#7AB8D8",padding:"2px 6px",
+                      style={{width:42,background:"#EEF2F7",border:"1px solid #C0D0E4",
+                        borderRadius:3,color:"#0E2A5A",padding:"2px 6px",
                         fontFamily:"Courier New, monospace",fontSize:10,textAlign:"center"}}/>
                     <span style={S.statLabel}>pairs</span>
                   </div>
                 </div>
                 <div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                  color:"#2A4060",marginTop:5}}>
+                  color:"#2E5070",marginTop:5}}>
                   Higher trigger = more context kept. Higher keep = smarter pruning.
                 </div>
               </div>
@@ -3106,7 +4346,7 @@ export default function HudsonPerryDriftV1() {
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                 cursor:"pointer",marginBottom:showParams?8:0}} onClick={()=>setShowParams(p=>!p)}>
                 <div style={{...S.sectionTitle,marginBottom:0}}>SDE PARAMS</div>
-                <span style={{...S.statLabel,color:"#2A4060"}}>{showParams?"▲":"▼"}</span>
+                <span style={{...S.statLabel,color:"#2E5070"}}>{showParams?"▲":"▼"}</span>
               </div>
               {showParams&&(
                 <>
@@ -3122,9 +4362,9 @@ export default function HudsonPerryDriftV1() {
                       <span style={S.statValue}>{val}</span>
                     </div>
                   ))}
-                  <div style={{marginTop:6,padding:"8px 10px",background:"#0A1020",borderRadius:4,
+                  <div style={{marginTop:6,padding:"8px 10px",background:"#EEF2F7",borderRadius:4,
                     border:"1px solid #1A2840",fontFamily:"Courier New, monospace",
-                    fontSize:9,color:"#2A5070",lineHeight:1.8}}>
+                    fontSize:9,color:"#0E3060",lineHeight:1.8}}>
                     dε = a(t)ε dt + b dW_t<br/>
                     a(t) = (α+β_p·sin(ωt))/(1+κ)<br/>
                     GARCH: σ²_t = ω + α·ε²_t-1 + β·σ²_t-1<br/>
@@ -3135,22 +4375,22 @@ export default function HudsonPerryDriftV1() {
                   <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #1A2840"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
                       <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                        color:adaptiveSigmaOn?"#1EAAAA":"#2A4060",letterSpacing:2}}>
+                        color:adaptiveSigmaOn?"#0A7878":"#2E5070",letterSpacing:2}}>
                         ADAPTIVE σ {adaptiveSigmaOn?"ON":"OFF"}
                       </span>
                       <button onClick={()=>setAdaptiveSigmaOn(p=>!p)} style={{
                         padding:"2px 10px",borderRadius:3,cursor:"pointer",
                         fontFamily:"Courier New, monospace",fontSize:8,letterSpacing:1,
-                        border:`1px solid ${adaptiveSigmaOn?"#1EAAAA":"#2A4060"}`,
-                        background:adaptiveSigmaOn?"#0A1A1A":"transparent",
-                        color:adaptiveSigmaOn?"#1EAAAA":"#2A4060",transition:"all .15s",
+                        border:`1px solid ${adaptiveSigmaOn?"#0A7878":"#2E5070"}`,
+                        background:adaptiveSigmaOn?"#E4F4F4":"transparent",
+                        color:adaptiveSigmaOn?"#0A7878":"#2E5070",transition:"all .15s",
                       }}>{adaptiveSigmaOn?"DISABLE":"ENABLE"}</button>
                     </div>
                     {adaptiveSigmaOn&&(
                       <>
                         <div style={S.statRow}>
                           <span style={S.statLabel}>σ adapted</span>
-                          <span style={{...S.statValue,color:"#1EAAAA"}}>{adaptedSigma.toFixed(5)}</span>
+                          <span style={{...S.statValue,color:"#0A7878"}}>{adaptedSigma.toFixed(5)}</span>
                         </div>
                         <div style={S.statRow}>
                           <span style={S.statLabel}>σ original</span>
@@ -3161,12 +4401,12 @@ export default function HudsonPerryDriftV1() {
                           <input type="range" min="0.01" max="0.08" step="0.005"
                             value={adaptationRate}
                             onChange={e=>setAdaptationRate(+e.target.value)}
-                            style={{flex:1,accentColor:"#1EAAAA"}}/>
+                            style={{flex:1,accentColor:"#0A7878"}}/>
                           <span style={{fontFamily:"Courier New, monospace",fontSize:9,
-                            color:"#1EAAAA",minWidth:38}}>{adaptationRate.toFixed(3)}</span>
+                            color:"#0A7878",minWidth:38}}>{adaptationRate.toFixed(3)}</span>
                         </div>
                         <div style={{fontFamily:"Courier New, monospace",fontSize:7,
-                          color:"#2A4060",marginTop:4,lineHeight:1.6}}>
+                          color:"#2E5070",marginTop:4,lineHeight:1.6}}>
                           κ=0.444 fixed (Hudson Constant)<br/>
                           chart bands use original σ
                         </div>
@@ -3183,7 +4423,7 @@ export default function HudsonPerryDriftV1() {
                 <div style={S.sectionTitle}>MODE HISTORY</div>
                 {harnessChangeLog.map((entry,i)=>(
                   <div key={i} style={{...S.statRow,marginBottom:3}}>
-                    <span style={{...S.statLabel,color:"#2A4060"}}>Turn {entry.turn}</span>
+                    <span style={{...S.statLabel,color:"#2E5070"}}>Turn {entry.turn}</span>
                     <span style={{fontFamily:"Courier New, monospace",fontSize:9,
                       color:HARNESS_MODES[entry.mode]?.color??"#888"}}>
                       → {HARNESS_MODES[entry.mode]?.label}{entry.active?" ⚠":""}
@@ -3198,1188 +4438,149 @@ export default function HudsonPerryDriftV1() {
       </div>
 
       {/* EXPORT CONTENT MODAL */}
-      {exportContent&&(
-        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
-          background:"rgba(0,0,0,0.88)",zIndex:2001,display:"flex",
-          alignItems:"center",justifyContent:"center",padding:16}}
-          onClick={()=>{setExportContent(null);setExportCopied(false);}}>
-          <div style={{background:"#080C14",border:"1px solid #1E4060",
-            borderRadius:8,maxWidth:740,width:"100%",maxHeight:"88vh",
-            display:"flex",flexDirection:"column",overflow:"hidden"}}
-            onClick={e=>e.stopPropagation()}>
-            <div style={{display:"flex",justifyContent:"space-between",
-              alignItems:"center",padding:"12px 18px",
-              borderBottom:"1px solid #1A3050",background:"#060A10",flexShrink:0}}>
-              <span style={{fontFamily:"Courier New, monospace",fontSize:10,
-                color:"#7AB8D8",letterSpacing:2,fontWeight:"bold"}}>
-                {exportContent.title}
-              </span>
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <button onClick={()=>{
-                  navigator.clipboard.writeText(exportContent.text).then(()=>{
-                    setExportCopied(true);
-                    setTimeout(()=>setExportCopied(false),2500);
-                  });
-                }} style={{padding:"5px 16px",
-                  background:exportCopied?"#0A2A0A":"transparent",
-                  border:`1px solid ${exportCopied?"#40D080":"#1EAAAA44"}`,
-                  borderRadius:4,color:exportCopied?"#40D080":"#1EAAAA",
-                  cursor:"pointer",fontSize:9,fontFamily:"Courier New, monospace",
-                  letterSpacing:1,transition:"all .2s"}}>
-                  {exportCopied?"✓ COPIED":"COPY ALL"}
-                </button>
-                <button onClick={()=>{setExportContent(null);setExportCopied(false);}}
-                  style={{background:"none",border:"1px solid #2A4060",borderRadius:4,
-                    color:"#4A6880",cursor:"pointer",fontSize:13,padding:"2px 10px",
-                    fontFamily:"Courier New, monospace"}}>✕</button>
-              </div>
-            </div>
-            <div style={{overflowY:"auto",flex:1,padding:"14px 18px"}}>
-              <pre style={{fontFamily:"Courier New, monospace",fontSize:8,
-                color:"#A8C4E0",lineHeight:1.75,margin:0,
-                whiteSpace:"pre-wrap",wordBreak:"break-word"}}>
-                {exportContent.text}
-              </pre>
-            </div>
-            <div style={{padding:"7px 18px",borderTop:"1px solid #1A3050",
-              background:"#060A10",flexShrink:0,
-              display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontFamily:"Courier New, monospace",fontSize:7,color:"#2A4060"}}>
-                {exportContent.filename}
-              </span>
-              <span style={{fontFamily:"Courier New, monospace",fontSize:7,color:"#2A4060"}}>
-                EXPERIMENTAL DATA — PROXY ONLY
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+      <ExportContentModal
+        exportContent={exportContent}
+        setExportContent={setExportContent}
+        exportCopied={exportCopied}
+        setExportCopied={setExportCopied}
+      />
 
       {/* R&D DISCLAIMER MODAL — shown on load */}
-      {showDisclaimer&&(
-        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
-          background:"rgba(0,0,0,0.95)",zIndex:2000,display:"flex",
-          alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"#080C14",border:"2px solid #E8A030",
-            borderRadius:8,maxWidth:620,width:"100%",maxHeight:"90vh",
-            display:"flex",flexDirection:"column",overflow:"hidden"}}>
-
-            {/* Title */}
-            <div style={{padding:"14px 20px",borderBottom:"1px solid #2A1A00",
-              background:"#060A08",flexShrink:0}}>
-              <div style={{fontFamily:"Courier New, monospace",fontSize:12,
-                color:"#E8A030",letterSpacing:2,fontWeight:"bold",marginBottom:2}}>
-                ⚠ RESEARCH &amp; DEVELOPMENT TOOL — IMPORTANT NOTICE
-              </div>
-              <div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                color:"#4A6060",letterSpacing:1}}>
-                HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.2 · READ IN FULL BEFORE PROCEEDING
-              </div>
-            </div>
-
-            {/* Body */}
-            <div style={{overflowY:"auto",flex:1,padding:"16px 20px",
-              fontFamily:"Courier New, monospace",fontSize:8,lineHeight:1.9}}>
-
-              {[
-                ["1. EXPERIMENTAL STATUS",
-                 "#E8A030",
-                 "This software is an experimental research tool in active development. It has not been peer-reviewed, independently audited, clinically validated, or verified against any external dataset. No version of this tool should be considered production-ready, certified, or fit for regulated use."],
-
-                ["2. PROXY INDICATORS — NOT MEASUREMENTS",
-                 "#E8A030",
-                 "All outputs produced by this tool — including coherence scores, session health scores, hallucination signals, behavioral signals, variance states, Kalman estimates, SDE bands, and Zero-Drift Lock status — are mathematical proxy indicators derived from text analysis heuristics. They do not constitute measurements, assessments, diagnoses, evaluations, or determinations of any kind. They may be inaccurate, misleading, or entirely wrong."],
-
-                ["3. NO CLINICAL, LEGAL, OR SAFETY USE",
-                 "#E05060",
-                 "Outputs from this tool must not be used — directly or indirectly — to inform medical, psychological, clinical, legal, financial, safety-critical, regulatory, or compliance decisions. This prohibition applies regardless of the context in which the tool is deployed or the nature of the AI being monitored."],
-
-                ["4. NO WARRANTY",
-                 "#E05060",
-                 "THIS SOFTWARE IS PROVIDED \"AS IS\" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, ACCURACY, OR NON-INFRINGEMENT. THE AUTHORS MAKE NO REPRESENTATIONS REGARDING THE CORRECTNESS OR RELIABILITY OF ANY OUTPUT."],
-
-                ["5. LIMITATION OF LIABILITY",
-                 "#E05060",
-                 "To the maximum extent permitted by applicable law, Hudson & Perry Research, David Hudson, and David Perry shall not be liable for any direct, indirect, incidental, special, consequential, or exemplary damages arising from the use of, or inability to use, this tool or its outputs. This includes but is not limited to damages from reliance on proxy signals, modified constants, experimental configurations, or any decision made based on tool outputs."],
-
-                ["6. MODIFIED CONSTANTS",
-                 "#E8A030",
-                 "This tool allows adjustment of foundational constants (κ and RESONANCE_ANCHOR). Results generated with non-default values operate outside the published Hudson & Perry framework and carry no validation basis whatsoever. The authors accept no responsibility for outputs produced under modified-constant configurations."],
-
-                ["7. NOT LEGAL OR PROFESSIONAL ADVICE",
-                 "#E8A030",
-                 "Nothing in this tool or its outputs constitutes legal, medical, financial, psychological, or any other form of professional advice. Users requiring such advice should consult a qualified licensed professional."],
-
-                ["8. DATA & PRIVACY",
-                 "#4A9EFF",
-                 "Conversation data processed by this tool is transmitted to Anthropic's API under your own API key and is subject to Anthropic's terms of service and privacy policy. This tool does not independently store, log, or transmit conversation content beyond your active browser session. API keys entered are session-only and are never written to persistent storage."],
-
-                ["9. ACCEPTANCE OF RISK",
-                 "#E8A030",
-                 "By proceeding past this notice, you acknowledge that you have read and understood these terms, that you accept full responsibility for how you use this tool and interpret its outputs, and that you hold Hudson & Perry Research, David Hudson, and David Perry harmless from any claim arising from your use of this software."],
-              ].map(([title,col,body])=>(
-                <div key={title} style={{marginBottom:12,paddingBottom:10,
-                  borderBottom:"1px solid #0E1820"}}>
-                  <div style={{color:col,letterSpacing:1,marginBottom:4,
-                    fontWeight:"bold"}}>{title}</div>
-                  <div style={{color:"#7A9EBA",lineHeight:1.8}}>{body}</div>
-                </div>
-              ))}
-
-              <div style={{marginTop:8,padding:"8px 12px",background:"#0A0808",
-                borderRadius:4,border:"1px solid #E0506033",
-                color:"#A06060",fontSize:7,lineHeight:1.7}}>
-                © 2026 Hudson &amp; Perry Research. All rights reserved.
-                Contact: 𝕏 @RaccoonStampede · 𝕏 @Prosperous727.
-                This notice does not constitute legal advice. Consult a qualified
-                attorney regarding your specific obligations and liability exposure.
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div style={{padding:"12px 20px",borderTop:"1px solid #2A1A00",
-              background:"#060A08",flexShrink:0,
-              display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontFamily:"Courier New, monospace",fontSize:7,
-                color:"#2A4060",lineHeight:1.5}}>
-                Proceeding confirms you have read and accepted all terms above.
-              </span>
-              <button onClick={()=>setShowDisclaimer(false)}
-                style={{padding:"10px 24px",background:"#0A1400",
-                  border:"2px solid #E8A030",borderRadius:4,color:"#E8A030",
-                  cursor:"pointer",fontSize:10,fontFamily:"Courier New, monospace",
-                  letterSpacing:1,fontWeight:"bold",flexShrink:0,marginLeft:16}}
-                onClick={()=>{setShowDisclaimer(false);setShowGuide(true);}}>
-                I ACCEPT — READ THE GUIDE FIRST
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DisclaimerModal
+        showDisclaimer={showDisclaimer}
+        setShowDisclaimer={setShowDisclaimer}
+        setShowGuide={setShowGuide}
+      />
 
       {/* TUNE MODAL — Presets, Feature Toggles, Custom Config */}
-      {showTuning&&(
-        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
-          background:"rgba(0,0,0,0.88)",zIndex:1000,display:"flex",
-          alignItems:"center",justifyContent:"center",padding:16}}
-          onClick={()=>setShowTuning(false)}>
-          <div style={{background:"#080C14",border:"1px solid #1E4060",
-            borderRadius:8,maxWidth:740,width:"100%",maxHeight:"90vh",
-            display:"flex",flexDirection:"column",overflow:"hidden"}}
-            onClick={e=>e.stopPropagation()}>
-
-            {/* Header */}
-            <div style={{display:"flex",justifyContent:"space-between",
-              alignItems:"center",padding:"12px 18px",
-              borderBottom:"1px solid #1A3050",background:"#060A10",flexShrink:0}}>
-              <span style={{fontFamily:"Courier New, monospace",fontSize:11,
-                color:"#40D080",letterSpacing:2,fontWeight:"bold"}}>
-                TUNE · {PRESETS[activePreset]?.label??activePreset}
-              </span>
-              <button onClick={()=>setShowTuning(false)}
-                style={{background:"none",border:"1px solid #2A4060",borderRadius:4,
-                  color:"#4A6880",cursor:"pointer",fontSize:12,padding:"2px 10px",
-                  fontFamily:"Courier New, monospace"}}>✕ CLOSE</button>
-            </div>
-
-            {/* TUNE TAB BAR */}
-            <div style={{display:"flex",borderBottom:"1px solid #1A3050",background:"#060A10",flexShrink:0}}>
-              {[["presets","PRESETS","#40D080"],["features","FEATURES","#4A9EFF"],
-                ["math","MATH","#1EAAAA"],
-                ["display","DISPLAY","#C8860A"],
-              ].map(([tab,label,col])=>(
-                <button key={tab} onClick={()=>setTuneTab(tab)} style={{
-                  flex:1,padding:"8px 2px",background:"none",cursor:"pointer",
-                  fontFamily:"Courier New,monospace",fontSize:8,letterSpacing:1,
-                  border:"none",borderBottom:`2px solid ${tuneTab===tab?col:"transparent"}`,
-                  color:tuneTab===tab?col:"#3A5070",transition:"color .15s"}}>
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div style={{overflowY:"auto",flex:1,padding:"14px 18px"}}>
-
-              {/* ── Preset selector ── */}
-              <div style={{marginBottom:16,display:tuneTab==="presets"?"block":"none"}}>
-                <div style={{fontFamily:"Courier New, monospace",fontSize:9,
-                  color:"#4A7090",letterSpacing:3,marginBottom:8}}>SELECT PROFILE</div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                  {Object.entries(PRESETS).map(([key,p])=>(
-                    <button key={key} onClick={()=>{
-                      setActivePreset(key);
-                      if (key!=="CUSTOM") setCustomConfig({...p});
-                    }} style={{padding:"6px 12px",borderRadius:4,cursor:"pointer",
-                      fontFamily:"Courier New, monospace",fontSize:9,letterSpacing:1,
-                      border:`1px solid ${key===activePreset?p.color:"#1A3050"}`,
-                      background:key===activePreset?`${p.color}18`:"transparent",
-                      color:key===activePreset?p.color:"#3A5870",transition:"all .15s"}}>
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-                <div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                  color:"#2A4060",marginTop:6}}>
-                  {PRESETS[activePreset]?.description}
-                </div>
-              </div>
-
-              {/* ── Feature toggles ── */}
-              <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="features"?"block":"none"}}>
-                <div style={{fontFamily:"Courier New, monospace",fontSize:9,
-                  color:"#4A7090",letterSpacing:3,marginBottom:8}}>
-                  FEATURE TOGGLES · κ=0.444 &amp; RESONANCE_ANCHOR ALWAYS ON
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                  {[
-                    ["Kalman Filter",       featKalman,    setFeatKalman,    "#1EAAAA","Without: raw score used directly"],
-                    ["GARCH Variance",      featGARCH,     setFeatGARCH,     "#E8A030","Without: simple window variance"],
-                    ["SDE Drift Bands",     featSDE,       setFeatSDE,       "#4A9EFF","Without: drift threshold = 0.45"],
-                    ["RAG Memory",          featRAG,       setFeatRAG,       "#8888FF","Without: no context retrieval"],
-                    ["Pipe Injection",      featPipe,      setFeatPipe,      "#1EAAAA","Without: no telemetry in prompt"],
-                    ["Mute Mode",           featMute,      setFeatMute,      "#E8A030","Without: no token cap on planning phrases"],
-                    ["Drift Gate",          featGate,      setFeatGate,      "#E05060","Without: no word limit on high variance"],
-                    ["B-Signal Detection",  featBSig,      setFeatBSig,      "#8888FF","Without: behavioral flags suppressed"],
-                    ["H-Signal Detection",  featHSig,      setFeatHSig,      "#E8A030","Without: hallucination flags suppressed"],
-                    ["Context Pruning",     featPrune,     setFeatPrune,     "#40D080","Without: full context always sent"],
-                    ["Zero-Drift Display",  featZeroDrift, setFeatZeroDrift, "#C8860A","Without: lock panel hidden"],
-                  ].map(([label,val,setter,col,note])=>(
-                    <div key={label} style={{display:"flex",alignItems:"center",gap:8,
-                      padding:"6px 10px",borderRadius:4,
-                      background:val?"#0A1A0A":"#0A0A0A",
-                      border:`1px solid ${val?col+"44":"#1A2030"}`}}>
-                      <button onClick={()=>setter(p=>!p)} style={{
-                        width:28,height:16,borderRadius:8,border:"none",cursor:"pointer",
-                        background:val?col:"#2A3040",transition:"background .2s",flexShrink:0}}>
-                        <div style={{width:12,height:12,borderRadius:"50%",background:"#fff",
-                          margin:"2px",marginLeft:val?14:2,transition:"margin .2s"}}/>
-                      </button>
-                      <div>
-                        <div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                          color:val?col:"#3A5070",letterSpacing:1}}>{label}</div>
-                        <div style={{fontFamily:"Courier New, monospace",fontSize:7,
-                          color:"#2A3848",lineHeight:1.3}}>{note}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── Hudson Constants — adjustable with disclaimer ── */}
-              <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="features"?"block":"none"}}>
-                <div style={{fontFamily:"Courier New, monospace",fontSize:9,
-                  color:"#E8A030",letterSpacing:3,marginBottom:8}}>
-                  HUDSON CONSTANTS — ADVANCED
-                </div>
-                <div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                  color:"#E8A030",marginBottom:10,padding:"6px 10px",
-                  background:"#0A0800",borderRadius:3,border:"1px solid #E8A03044",
-                  lineHeight:1.7}}>
-                  ⚠ These are the framework identity constants. Changing them alters
-                  the mathematical foundation of the Drift Law. Results with modified
-                  values are not validated and may not reflect the published framework.
-                  This tool is in R&amp;D — all outputs are proxy indicators only.
-                  No warranty. Use for experimental testing only.
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  {[
-                    ["κ (kappa)","0.444 — Hudson Constant. Drives damping, SDE, Kalman.",
-                     userKappa,setUserKappa,0.10,2.00,0.001,KAPPA],
-                    ["RESONANCE_ANCHOR","623.81 Hz — Zero-Drift Lock target frequency.",
-                     userAnchor,setUserAnchor,100,2000,0.01,RESONANCE_ANCHOR],
-                  ].map(([label,note,val,setter,min,max,step,def])=>(
-                    <div key={label} style={{padding:"8px 10px",borderRadius:4,
-                      background:val!==def?"#0A0800":"#0A0E18",
-                      border:`1px solid ${val!==def?"#E8A03044":"#1A2840"}`}}>
-                      <div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                        color:val!==def?"#E8A030":"#4A6880",marginBottom:4,letterSpacing:1}}>
-                        {label}{val!==def?" ⚠ MODIFIED":""}
-                      </div>
-                      <div style={{fontFamily:"Courier New, monospace",fontSize:7,
-                        color:"#2A3848",marginBottom:6,lineHeight:1.4}}>{note}</div>
-                      <div style={{display:"flex",alignItems:"center",gap:6}}>
-                        <input type="number" min={min} max={max} step={step}
-                          value={val}
-                          onChange={e=>setter(+e.target.value)}
-                          style={{flex:1,background:"#0A1020",border:`1px solid ${val!==def?"#E8A03066":"#1A3050"}`,
-                            borderRadius:3,color:val!==def?"#E8A030":"#7AB8D8",
-                            padding:"3px 8px",fontFamily:"Courier New, monospace",fontSize:10}}/>
-                        <button onClick={()=>setter(def)}
-                          style={{padding:"3px 8px",background:"transparent",
-                            border:"1px solid #2A4060",borderRadius:3,color:"#4A6880",
-                            cursor:"pointer",fontSize:7,fontFamily:"Courier New, monospace"}}>
-                          RESET
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {activePreset==="CUSTOM"&&(
-                <div style={{borderTop:"1px solid #1A3050",paddingTop:12,display:tuneTab==="presets"?"block":"none"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",
-                    alignItems:"center",marginBottom:10}}>
-                    <div style={{fontFamily:"Courier New, monospace",fontSize:9,
-                      color:"#40D080",letterSpacing:3}}>CUSTOM PARAMETERS</div>
-                    <button onClick={()=>setCustomConfig({...PRESETS.DEFAULT})}
-                      style={{padding:"3px 10px",background:"transparent",
-                        border:"1px solid #2A4060",borderRadius:3,color:"#4A6880",
-                        cursor:"pointer",fontSize:8,fontFamily:"Courier New, monospace"}}>
-                      RESET TO DEFAULT
-                    </button>
-                  </div>
-                  <div style={{fontFamily:"Courier New, monospace",fontSize:7,
-                    color:"#E05060",marginBottom:10,padding:"4px 8px",
-                    background:"#150808",borderRadius:3,border:"1px solid #E0506033"}}>
-                    ⚠ κ=0.444 (Hudson Constant) and RESONANCE_ANCHOR=623.81 are not
-                    editable here. They are the framework identity.
-                  </div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                    {[
-                      ["Var Decoherence",    "varDecoherence",    0.05,  0.50,  0.005],
-                      ["Var Caution",        "varCaution",        0.03,  0.30,  0.005],
-                      ["Var Calm",           "varCalm",           0.02,  0.15,  0.005],
-                      ["LOCK_888 Streak",    "lock888Streak",     2,     10,    1    ],
-                      ["LOCK_888 Avg C Floor","lock888AvgCFloor", 0.40,  0.95,  0.01 ],
-                      ["Gate Word Limit",    "driftGateWordLimit",40,    500,   10   ],
-                      ["Mute Max Tokens",    "muteMaxTokens",     40,    500,   10   ],
-                      ["GARCH ω",            "garchOmega",        0.001, 0.10,  0.001],
-                      ["GARCH α",            "garchAlpha",        0.01,  0.50,  0.01 ],
-                      ["GARCH β",            "garchBeta",         0.30,  0.98,  0.01 ],
-                      ["SDE α",              "sdeAlpha",         -0.80,  -0.05, 0.01 ],
-                      ["SDE β_p",            "sdeBetaP",          0.05,  0.50,  0.01 ],
-                      ["SDE σ",              "sdeSigma",          0.03,  0.40,  0.005],
-                      ["Prune Threshold",    "pruneThreshold",    3,     20,    1    ],
-                      ["Prune Keep",         "pruneKeep",         2,     10,    1    ],
-                      ["Escalate→Moderate",  "driftEscalateMod",  1,     10,    1    ],
-                      ["Escalate→Deep",      "driftEscalateDeep", 2,     15,    1    ],
-                      ["Escalate→Extreme",   "driftEscalateExtreme",3,   20,    1    ],
-                      ["Health: Drift -wt",   "healthDriftWeight",    1,   20,    1    ],
-                      ["Health: B-Sig -wt",   "healthBSigWeight",     1,   15,    1    ],
-                      ["Health: H-Sig -wt",   "healthHSigWeight",     1,   15,    1    ],
-                    ].map(([label,key,min,max,step])=>(
-                      <div key={key} style={{display:"flex",alignItems:"center",
-                        justifyContent:"space-between",gap:8,
-                        padding:"4px 0",borderBottom:"1px solid #0E1820"}}>
-                        <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                          color:"#4A6880",flex:1}}>{label}</span>
-                        <input type="number" min={min} max={max} step={step}
-                          value={customConfig[key]??0}
-                          onChange={e=>setCustomConfig(p=>({...p,[key]:+e.target.value}))}
-                          style={{width:72,background:"#0A1020",border:"1px solid #1A3050",
-                            borderRadius:3,color:"#40D080",padding:"2px 6px",
-                            fontFamily:"Courier New, monospace",fontSize:9,textAlign:"right"}}/>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* ── V1.5.0: SDE Path Count ── */}
-              <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="features"?"block":"none"}}>
-                <div style={{fontFamily:"Courier New, monospace",fontSize:9,
-                  color:"#4A7090",letterSpacing:3,marginBottom:8}}>SDE SIMULATION PATHS</div>
-                <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-                  <select value={nPaths} onChange={e=>{
-                    const v=+e.target.value;
-                    if(v===-1) return; // custom handled below
-                    setNPaths(v);
-                  }} style={{background:"#0A1020",border:"1px solid #1A3050",
-                    borderRadius:3,color:"#7AB8D8",padding:"4px 8px",
-                    fontFamily:"Courier New, monospace",fontSize:9}}>
-                    {[5,10,20,25,50,100,200,250,300,500].map(n=>(
-                      <option key={n} value={n}>{n} paths{n===50?" (default)":n===300?" (original)":""}</option>
-                    ))}
-                  </select>
-                  <input type="number" min="1" max="1000"
-                    value={nPaths} onChange={e=>{
-                      const v=Math.max(1,Math.min(1000,+e.target.value));
-                      if(v>500){
-                        // warn about token burn
-                      }
-                      setNPaths(v);
-                    }}
-                    style={{width:72,background:"#0A1020",border:`1px solid ${nPaths>500?"#E0506066":"#1A3050"}`,
-                      borderRadius:3,color:nPaths>500?"#E05060":"#7AB8D8",padding:"3px 6px",
-                      fontFamily:"Courier New, monospace",fontSize:9,textAlign:"center"}}/>
-                  <span style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#2A4060"}}>
-                    manual (1–1000)
-                  </span>
-                </div>
-                {nPaths>500&&(
-                  <div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                    color:"#E05060",marginTop:6,padding:"4px 8px",
-                    background:"#150808",borderRadius:3,border:"1px solid #E0506033"}}>
-                    ⚠ {nPaths} paths will significantly increase token usage and compute time per turn.
-                    Above 300 gives diminishing returns on band accuracy.
-                    Recommended max for daily use: 200.
-                  </div>
-                )}
-                {nPaths>200&&nPaths<=500&&(
-                  <div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                    color:"#E8A030",marginTop:4}}>
-                    △ High path count — expect slower chart updates and higher token usage.
-                  </div>
-                )}
-                <div style={{fontFamily:"Courier New, monospace",fontSize:7,
-                  color:"#2A4060",marginTop:4}}>
-                  Default 50. More paths = sharper SDE bands. Stored across sessions.
-                </div>
-              </div>
-
-              {/* ── SDE Parameter Controls ── */}
-              <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="features"?"block":"none"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <div style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#4A7090",letterSpacing:3}}>SDE PARAMETERS</div>
-                  <button onClick={()=>{setSdeAlphaVal(SDE_PARAMS.alpha);setSdeBetaVal(SDE_PARAMS.beta_p);setSdeSigmaVal(SDE_PARAMS.sigma);setSdeAlphaOn(true);setSdeBetaOn(true);setSdeSigmaOn(true);}}
-                    style={{padding:"2px 8px",background:"transparent",border:"1px solid #2A4060",
-                      borderRadius:3,color:"#4A6880",cursor:"pointer",fontSize:7,fontFamily:"Courier New, monospace"}}>RESET</button>
-                </div>
-                <div style={{fontFamily:"Courier New, monospace",fontSize:7,color:"#E05060",
-                  marginBottom:8,padding:"3px 8px",background:"#150808",borderRadius:3,border:"1px solid #E0506033"}}>
-                  κ=0.444 locked. ω=2π/12 locked. α, β_p, σ are tunable.
-                </div>
-                {[
-                  ["α (mean-revert)", sdeAlphaVal, setSdeAlphaVal, sdeAlphaOn, setSdeAlphaOn, -0.80,-0.05,0.01,"#E05060"],
-                  ["β_p (forcing)",   sdeBetaVal,  setSdeBetaVal,  sdeBetaOn,  setSdeBetaOn,  0.01, 0.60, 0.01,"#E8A030"],
-                  ["σ (diffusion)",   sdeSigmaVal, setSdeSigmaVal, sdeSigmaOn, setSdeSigmaOn, 0.01, 0.50, 0.005,"#4A9EFF"],
-                ].map(([label,val,setter,on,setOn,min,max,step,col])=>(
-                  <div key={label} style={{display:"flex",alignItems:"center",gap:8,
-                    padding:"6px 8px",borderRadius:4,marginBottom:4,
-                    background:on?"#0A0E18":"#080A10",border:`1px solid ${on?col+"44":"#1A2030"}`}}>
-                    <button onClick={()=>setOn(p=>!p)} style={{
-                      width:28,height:16,borderRadius:8,border:"none",cursor:"pointer",
-                      background:on?col:"#2A3040",transition:"background .2s",flexShrink:0}}>
-                      <div style={{width:12,height:12,borderRadius:"50%",background:"#fff",
-                        margin:"2px",marginLeft:on?14:2,transition:"margin .2s"}}/>
-                    </button>
-                    <span style={{fontFamily:"Courier New, monospace",fontSize:8,color:on?col:"#3A5070",flex:1}}>{label}</span>
-                    <input type="number" min={min} max={max} step={step} value={val}
-                      onChange={e=>setter(+e.target.value)} disabled={!on}
-                      style={{width:64,background:"#060A10",border:`1px solid ${on?col+"66":"#1A2030"}`,
-                        borderRadius:3,color:on?col:"#2A3040",padding:"2px 5px",
-                        fontFamily:"Courier New, monospace",fontSize:9,textAlign:"right"}}/>
-                  </div>
-                ))}
-              </div>
-
-              {/* ── V1.5.0: Post-Audit Toggle ── */}
-              <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="features"?"block":"none"}}>
-                <div style={{fontFamily:"Courier New, monospace",fontSize:9,
-                  color:"#4A7090",letterSpacing:3,marginBottom:8}}>POST-AUDIT</div>
-                <div style={{display:"flex",gap:6}}>
-                  {[
-                    ["off",    "OFF",    "#3A5070","No second pass"],
-                    ["light",  "LIGHT",  "#E8A030","Kalman < 0.70"],
-                    ["custom", "CUSTOM", "#C8860A","Custom threshold"],
-                    ["full",   "FULL",   "#1EAAAA","Every turn"],
-                  ].map(([val,label,col,desc])=>(
-                    <button key={val} onClick={()=>setPostAuditMode(val)} style={{
-                      padding:"5px 12px",borderRadius:4,cursor:"pointer",
-                      fontFamily:"Courier New, monospace",fontSize:8,letterSpacing:1,
-                      border:`1px solid ${postAuditMode===val?col:"#1A3050"}`,
-                      background:postAuditMode===val?`${col}18`:"transparent",
-                      color:postAuditMode===val?col:"#3A5070",transition:"all .15s"}}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                {postAuditMode==="custom"&&(
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginTop:8}}>
-                    <span style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#C8860A"}}>
-                      Fire when Kalman x&#x302; &lt;
-                    </span>
-                    <input type="number" min="0.30" max="0.95" step="0.01"
-                      value={postAuditThresh}
-                      onChange={e=>setPostAuditThresh(+e.target.value)}
-                      style={{width:60,background:"#0A1020",border:"1px solid #C8860A44",
-                        borderRadius:3,color:"#C8860A",padding:"3px 6px",
-                        fontFamily:"Courier New, monospace",fontSize:10,textAlign:"center"}}/>
-                    <span style={{fontFamily:"Courier New, monospace",fontSize:7,color:"#2A4060"}}>
-                      (default 0.70)
-                    </span>
-                  </div>
-                )}
-                <div style={{fontFamily:"Courier New, monospace",fontSize:7,
-                  color:"#2A4060",marginTop:5,lineHeight:1.6}}>
-                  Recomputes coherence on final response. Logs delta vs live score.
-                  Quiet fail = post-audit C drops &gt;0.08 below live C.
-                  Light/Custom ~5% tokens. Full ~10%.
-                </div>
-              </div>
-
-              {/* ── V1.5.0: Mute Phrase Editor ── */}
-              <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="features"?"block":"none"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <div style={{fontFamily:"Courier New, monospace",fontSize:9,
-                    color:"#4A7090",letterSpacing:3}}>MUTE PHRASES</div>
-                  <button onClick={()=>setCustomMutePhrases(null)}
-                    style={{padding:"2px 8px",background:"transparent",
-                      border:"1px solid #2A4060",borderRadius:3,color:"#4A6880",
-                      cursor:"pointer",fontSize:7,fontFamily:"Courier New, monospace"}}>
-                    RESET TO DEFAULT
-                  </button>
-                </div>
-                <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:8}}>
-                  {(customMutePhrases??MUTE_PHRASES).map((phrase,i)=>(
-                    <div key={i} style={{display:"flex",alignItems:"center",gap:3,
-                      padding:"2px 8px",borderRadius:3,
-                      background:"#0A1020",border:"1px solid #1A3050"}}>
-                      <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                        color:"#4A9EFF"}}>{phrase.trim()}</span>
-                      <button onClick={()=>{
-                        const cur=customMutePhrases??MUTE_PHRASES;
-                        setCustomMutePhrases(cur.filter((_,j)=>j!==i));
-                      }} style={{background:"none",border:"none",cursor:"pointer",
-                        color:"#3A5070",fontSize:10,padding:0,lineHeight:1}}>✕</button>
-                    </div>
-                  ))}
-                </div>
-                <div style={{display:"flex",gap:6}}>
-                  <input value={mutePhraseInput}
-                    onChange={e=>setMutePhraseInput(e.target.value)}
-                    onKeyDown={e=>{
-                      if(e.key==="Enter"&&mutePhraseInput.trim()){
-                        const cur=customMutePhrases??MUTE_PHRASES;
-                        setCustomMutePhrases([...cur,mutePhraseInput.toLowerCase().trimEnd()+" "]);
-                        setMutePhraseInput("");
-                      }
-                    }}
-                    placeholder="add phrase (press Enter)"
-                    style={{flex:1,background:"#0A1020",border:"1px solid #1A3050",
-                      borderRadius:3,color:"#7AB8D8",padding:"3px 8px",
-                      fontFamily:"Courier New, monospace",fontSize:9,outline:"none"}}/>
-                  <button onClick={()=>{
-                    if(!mutePhraseInput.trim()) return;
-                    const cur=customMutePhrases??MUTE_PHRASES;
-                    setCustomMutePhrases([...cur,mutePhraseInput.toLowerCase().trimEnd()+" "]);
-                    setMutePhraseInput("");
-                  }} style={{padding:"3px 10px",background:"#0A1020",
-                    border:"1px solid #4A9EFF44",borderRadius:3,color:"#4A9EFF",
-                    cursor:"pointer",fontSize:8,fontFamily:"Courier New, monospace"}}>
-                    ADD
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* ── MATH TAB — editable math tunables ── */}
-            <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="math"?"block":"none"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <div style={{fontFamily:"Courier New,monospace",fontSize:9,color:"#1EAAAA",letterSpacing:3}}>
-                  MATH TUNABLES
-                </div>
-                <button onClick={()=>{
-                  setMathTfidf(0.25);setMathJsd(0.25);setMathLen(0.25);
-                  setMathStruct(0.15);setMathPersist(0.10);setMathRepThresh(0.65);
-                  setMathKalmanR(KALMAN_R);setMathKalmanSigP(KALMAN_SIGMA_P);
-                  setMathRagTopK(RAG_TOP_K);setMathMaxTokens(NORMAL_MAX_TOKENS);
-                }} style={{padding:"2px 8px",background:"transparent",
-                  border:"1px solid #2A4060",borderRadius:3,color:"#4A6880",
-                  cursor:"pointer",fontSize:7,fontFamily:"Courier New,monospace"}}>
-                  RESET ALL
-                </button>
-              </div>
-              <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#E8A030",
-                marginBottom:10,padding:"4px 8px",background:"#0A0800",borderRadius:3,
-                border:"1px solid #E8A03033",lineHeight:1.6}}>
-                Coherence weights should sum to 1.0. Changes apply immediately to next turn.
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                {[
-                  ["TF-IDF weight",   mathTfidf,   setMathTfidf,   0.01,0.80,0.01,"#1EAAAA"],
-                  ["JSD weight",      mathJsd,     setMathJsd,     0.01,0.80,0.01,"#1EAAAA"],
-                  ["Length weight",   mathLen,     setMathLen,     0.01,0.80,0.01,"#1EAAAA"],
-                  ["Structure wt",    mathStruct,  setMathStruct,  0.01,0.50,0.01,"#1EAAAA"],
-                  ["Persistence wt",  mathPersist, setMathPersist, 0.01,0.50,0.01,"#1EAAAA"],
-                  ["Rep threshold",   mathRepThresh,setMathRepThresh,0.30,0.95,0.01,"#E8A030"],
-                  ["Kalman R",        mathKalmanR, setMathKalmanR, 0.001,0.20,0.001,"#4A9EFF"],
-                  ["Kalman σP",       mathKalmanSigP,setMathKalmanSigP,0.01,0.30,0.005,"#4A9EFF"],
-                  ["RAG top-K",       mathRagTopK, setMathRagTopK, 1,10,1,"#8888FF"],
-                  ["Max tokens",      mathMaxTokens,setMathMaxTokens,200,4000,100,"#40D080"],
-                ].map(([label,val,setter,min,max,step,col])=>(
-                  <div key={label} style={{padding:"5px 8px",borderRadius:4,
-                    background:"#0A0E18",border:"1px solid #1A2840"}}>
-                    <div style={{fontFamily:"Courier New,monospace",fontSize:7,
-                      color:"#4A6880",marginBottom:4}}>{label}</div>
-                    <div style={{display:"flex",alignItems:"center",gap:4}}>
-                      <input type="number" min={min} max={max} step={step}
-                        value={val}
-                        onChange={e=>setter(+e.target.value)}
-                        style={{flex:1,background:"#060A10",border:`1px solid ${col}44`,
-                          borderRadius:3,color:col,padding:"2px 5px",
-                          fontFamily:"Courier New,monospace",fontSize:9,textAlign:"right"}}/>
-                      <button onClick={()=>setter(val)} title="default"
-                        style={{padding:"1px 5px",background:"transparent",
-                          border:"1px solid #1A2840",borderRadius:2,
-                          color:"#2A4060",cursor:"pointer",fontSize:7,
-                          fontFamily:"Courier New,monospace"}}>↺</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{fontFamily:"Courier New,monospace",fontSize:7,
-                color:"#2A4060",marginTop:8,lineHeight:1.6}}>
-                ε ghost tax floor: {EPSILON} (framework constant — not tunable)<br/>
-                Mute max tokens: {MUTE_MAX_TOKENS} (set per preset in PRESETS tab)
-              </div>
-            </div>
-
-            {/* ── DISPLAY TAB ── */}
-            <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="display"?"block":"none"}}>
-              <div style={{fontFamily:"Courier New,monospace",fontSize:9,color:"#C8860A",letterSpacing:3,marginBottom:12}}>
-                DISPLAY
-              </div>
-              <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#2A4060",marginBottom:16,lineHeight:1.6,
-                padding:"6px 10px",background:"#0A1020",borderRadius:3,border:"1px solid #1A3050"}}>
-                Theme toggle and sidebar resize coming in a future build.
-                Framework is dark-mode first by design — 623.81 Hz resonance
-                anchor is optimized for low-light reading environments.
-              </div>
-              <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#2A4060",lineHeight:1.8}}>
-                Current layout: 55% chat · 45% metrics<br/>
-                Font: Trebuchet MS (body) · Courier New (data)<br/>
-                Background: #06090F · Accent: #1EAAAA<br/>
-                κ color: #C8860A · Health green: #40D080
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div style={{padding:"8px 18px",borderTop:"1px solid #1A3050",
-              background:"#060A10",flexShrink:0,
-              display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                color:"#2A4060",letterSpacing:1}}>
-                ACTIVE: {PRESETS[activePreset]?.label??activePreset} · κ={userKappa.toFixed(4)} · V1.5.2
-              </span>
-              <button onClick={()=>setShowTuning(false)}
-                style={{padding:"4px 14px",background:"#0A1A0A",
-                  border:"1px solid #40D08044",borderRadius:4,color:"#40D080",
-                  cursor:"pointer",fontSize:9,fontFamily:"Courier New, monospace"}}>
-                APPLY &amp; CLOSE
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TuneModal
+        showTuning={showTuning}
+        setShowTuning={setShowTuning}
+        activePreset={activePreset}
+        setActivePreset={setActivePreset}
+        customConfig={customConfig}
+        setCustomConfig={setCustomConfig}
+        userKappa={userKappa}
+        setUserKappa={setUserKappa}
+        userAnchor={userAnchor}
+        setUserAnchor={setUserAnchor}
+        featKalman={featKalman}
+        setFeatKalman={setFeatKalman}
+        featGARCH={featGARCH}
+        setFeatGARCH={setFeatGARCH}
+        featSDE={featSDE}
+        setFeatSDE={setFeatSDE}
+        featRAG={featRAG}
+        setFeatRAG={setFeatRAG}
+        featPipe={featPipe}
+        setFeatPipe={setFeatPipe}
+        featMute={featMute}
+        setFeatMute={setFeatMute}
+        featGate={featGate}
+        setFeatGate={setFeatGate}
+        featBSig={featBSig}
+        setFeatBSig={setFeatBSig}
+        featHSig={featHSig}
+        setFeatHSig={setFeatHSig}
+        featPrune={featPrune}
+        setFeatPrune={setFeatPrune}
+        featZeroDrift={featZeroDrift}
+        setFeatZeroDrift={setFeatZeroDrift}
+        nPaths={nPaths}
+        setNPaths={setNPaths}
+        postAuditMode={postAuditMode}
+        setPostAuditMode={setPostAuditMode}
+        postAuditThresh={postAuditThresh}
+        setPostAuditThresh={setPostAuditThresh}
+        adaptiveSigmaOn={adaptiveSigmaOn}
+        setAdaptiveSigmaOn={setAdaptiveSigmaOn}
+        adaptedSigma={adaptedSigma}
+        adaptationRate={adaptationRate}
+        setAdaptationRate={setAdaptationRate}
+        sdeAlphaVal={sdeAlphaVal}
+        setSdeAlphaVal={setSdeAlphaVal}
+        sdeBetaVal={sdeBetaVal}
+        setSdeBetaVal={setSdeBetaVal}
+        sdeSigmaVal={sdeSigmaVal}
+        setSdeSigmaVal={setSdeSigmaVal}
+        sdeAlphaOn={sdeAlphaOn}
+        setSdeAlphaOn={setSdeAlphaOn}
+        sdeBetaOn={sdeBetaOn}
+        setSdeBetaOn={setSdeBetaOn}
+        sdeSigmaOn={sdeSigmaOn}
+        setSdeSigmaOn={setSdeSigmaOn}
+        customMutePhrases={customMutePhrases}
+        setCustomMutePhrases={setCustomMutePhrases}
+        mutePhraseInput={mutePhraseInput}
+        setMutePhraseInput={setMutePhraseInput}
+        mathEpsilon={mathEpsilon}
+        setMathEpsilon={setMathEpsilon}
+        mathTfidf={mathTfidf}
+        setMathTfidf={setMathTfidf}
+        mathJsd={mathJsd}
+        setMathJsd={setMathJsd}
+        mathLen={mathLen}
+        setMathLen={setMathLen}
+        mathStruct={mathStruct}
+        setMathStruct={setMathStruct}
+        mathPersist={mathPersist}
+        setMathPersist={setMathPersist}
+        mathRepThresh={mathRepThresh}
+        setMathRepThresh={setMathRepThresh}
+        mathKalmanR={mathKalmanR}
+        setMathKalmanR={setMathKalmanR}
+        mathKalmanSigP={mathKalmanSigP}
+        setMathKalmanSigP={setMathKalmanSigP}
+        mathRagTopK={mathRagTopK}
+        setMathRagTopK={setMathRagTopK}
+        mathMaxTokens={mathMaxTokens}
+        setMathMaxTokens={setMathMaxTokens}
+        tuneTab={tuneTab}
+        setTuneTab={setTuneTab}
+        pruneThreshold={pruneThreshold}
+        setPruneThreshold={setPruneThreshold}
+        pruneKeep={pruneKeep}
+        setPruneKeep={setPruneKeep}
+        showParams={showParams}
+        setShowParams={setShowParams}
+      />
 
       {/* REWIND CONFIRM MODAL */}
-      {rewindConfirm!==null&&(
-        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
-          background:"rgba(0,0,0,0.80)",zIndex:900,display:"flex",
-          alignItems:"center",justifyContent:"center",padding:16}}
-          onClick={()=>setRewindConfirm(null)}>
-          <div style={{background:"#080C14",border:"2px solid #40D080",
-            borderRadius:8,padding:24,maxWidth:320,width:"100%",textAlign:"center"}}
-            onClick={e=>e.stopPropagation()}>
-            <div style={{fontFamily:"Courier New, monospace",fontSize:12,
-              color:"#40D080",letterSpacing:2,marginBottom:12}}>
-              ⟲ REWIND TO TURN {rewindConfirm}?
-            </div>
-            <div style={{fontFamily:"Courier New, monospace",fontSize:9,
-              color:"#4A6880",marginBottom:20,lineHeight:1.7}}>
-              Session will restore to the state after Turn {rewindConfirm}.
-              You can continue from here or navigate forward with the arrow buttons.
-            </div>
-            <div style={{display:"flex",gap:12,justifyContent:"center"}}>
-              <button onClick={()=>restoreToTurn(rewindConfirm)}
-                style={{padding:"10px 24px",background:"#0A2A0A",
-                  border:"2px solid #40D080",borderRadius:6,color:"#40D080",
-                  cursor:"pointer",fontSize:12,fontFamily:"Courier New, monospace",
-                  fontWeight:"bold",letterSpacing:1}}>
-                CONFIRM
-              </button>
-              <button onClick={()=>setRewindConfirm(null)}
-                style={{padding:"10px 24px",background:"transparent",
-                  border:"1px solid #2A4060",borderRadius:6,color:"#4A6880",
-                  cursor:"pointer",fontSize:12,fontFamily:"Courier New, monospace",
-                  letterSpacing:1}}>
-                CANCEL
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <RewindConfirmModal
+        rewindConfirm={rewindConfirm}
+        setRewindConfirm={setRewindConfirm}
+        restoreToTurn={restoreToTurn}
+      />
 
       {/* LOG MODAL */}
-      {showLog&&(
-        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
-          background:"rgba(0,0,0,0.85)",zIndex:1000,display:"flex",
-          alignItems:"center",justifyContent:"center",padding:16}}
-          onClick={()=>setShowLog(false)}>
-          <div style={{background:"#080C14",border:"1px solid #1E4060",
-            borderRadius:8,maxWidth:680,width:"100%",maxHeight:"85vh",
-            display:"flex",flexDirection:"column",overflow:"hidden"}}
-            onClick={e=>e.stopPropagation()}>
-            <div style={{display:"flex",justifyContent:"space-between",
-              alignItems:"center",padding:"12px 18px",
-              borderBottom:"1px solid #1A3050",background:"#060A10",flexShrink:0}}>
-              <span style={{fontFamily:"Courier New, monospace",fontSize:11,
-                color:"#4A9EFF",letterSpacing:2,fontWeight:"bold"}}>
-                ARCHITECT — {eventLog.length} EVENTS{errorLog.length>0?` · ⚠ ${errorLog.length} DIAGNOSTICS`:""}
-              </span>
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>setExportContent(downloadLog(eventLog,sessionId))}
-                  style={{background:"none",border:"1px solid #4A9EFF44",borderRadius:4,
-                    color:"#4A9EFF",cursor:"pointer",fontSize:10,padding:"2px 10px",
-                    fontFamily:"Courier New, monospace"}}>
-                  DOWNLOAD
-                </button>
-                <button onClick={()=>setShowLog(false)}
-                  style={{background:"none",border:"1px solid #2A4060",borderRadius:4,
-                    color:"#4A6880",cursor:"pointer",fontSize:12,padding:"2px 10px",
-                    fontFamily:"Courier New, monospace"}}>
-                  ✕ CLOSE
-                </button>
-              </div>
-            </div>
-            <div style={{overflowY:"auto",flex:1,padding:"12px 16px"}}>
-              {/* Error entries first, in red */}
-              {errorLog.length>0&&(
-                <div style={{marginBottom:16}}>
-                  <div style={{fontFamily:"Courier New, monospace",fontSize:9,
-                    color:"#E05060",letterSpacing:2,marginBottom:8,
-                    borderBottom:"1px solid #E0506033",paddingBottom:4,
-                    display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span>⚠ ARCHITECT DIAGNOSTICS ({errorLog.length})</span>
-                    <button onClick={()=>{
-                      const txt=[...errorLog].reverse().map(e=>[
-                        `[${e.severity?.toUpperCase()||"ERROR"}] ${e.timestamp} T${e.turn||"?"}`,
-                        `Stage: ${e.stage}`,
-                        `Message: ${e.message}`,
-                        e.source?`Source: ${e.source}`:"",
-                        e.hint?`Hint: ${e.hint}`:"",
-                        e.fallback?`Fallback: ${e.fallback}`:"",
-                        e.inputs?`Inputs: ${JSON.stringify(e.inputs)}`:"",
-                        e.session?`Session: ${JSON.stringify(e.session)}`:"",
-                        e.stack?`Stack:\n${e.stack}`:"",
-                        "─".repeat(60),
-                      ].filter(Boolean).join("\n")).join("\n");
-                      navigator.clipboard.writeText(txt);
-                    }} style={{padding:"2px 8px",background:"transparent",
-                      border:"1px solid #E0506044",borderRadius:3,
-                      color:"#E05060",cursor:"pointer",
-                      fontSize:7,fontFamily:"Courier New, monospace"}}>
-                      COPY ALL ERRORS
-                    </button>
-                  </div>
-                  {[...errorLog].reverse().map((e,i)=>{
-                    const sevColor=e.severity==="fatal"?"#FF4444"
-                      :e.severity==="error"?"#E05060"
-                      :e.severity==="warn"?"#E8A030"
-                      :"#4A9EFF";
-                    return (
-                      <div key={i} style={{padding:"10px 12px",marginBottom:8,
-                        background:"#0E0808",borderRadius:4,
-                        borderLeft:`3px solid ${sevColor}`}}>
-                        {/* Header row */}
-                        <div style={{display:"flex",justifyContent:"space-between",
-                          alignItems:"center",marginBottom:6}}>
-                          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                            <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                              color:sevColor,letterSpacing:1,fontWeight:"bold",
-                              padding:"1px 6px",border:`1px solid ${sevColor}44`,
-                              borderRadius:3,background:`${sevColor}11`}}>
-                              {e.severity?.toUpperCase()||"ERROR"}
-                            </span>
-                            <span style={{fontFamily:"Courier New, monospace",fontSize:9,
-                              color:sevColor,letterSpacing:1,fontWeight:"bold"}}>
-                              {e.stage?.toUpperCase().split("_").join(" ")||"UNKNOWN"}
-                            </span>
-                          </div>
-                          <span style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#3A5070"}}>
-                            T{e.turn||"?"} · {e.timestamp?.slice(11,19)||""}
-                          </span>
-                        </div>
-                        {/* Message */}
-                        <div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                          color:"#C05050",lineHeight:1.6,marginBottom:4}}>
-                          {e.message}
-                        </div>
-                        {/* Hint — plain language fix suggestion */}
-                        {e.hint&&(
-                          <div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                            color:"#E8A030",lineHeight:1.5,marginBottom:4,
-                            padding:"3px 6px",background:"#0A0800",borderRadius:2}}>
-                            💡 {e.hint}
-                          </div>
-                        )}
-                        {/* Source line */}
-                        {e.source&&e.source!=="unknown"&&(
-                          <div style={{fontFamily:"Courier New, monospace",fontSize:7,
-                            color:"#4A6080",marginBottom:4}}>
-                            at {e.source}
-                          </div>
-                        )}
-                        {/* Inputs snapshot */}
-                        {e.inputs&&Object.keys(e.inputs).length>0&&(
-                          <div style={{fontFamily:"Courier New, monospace",fontSize:7,
-                            color:"#2A4050",marginBottom:4,lineHeight:1.6}}>
-                            inputs: {Object.entries(e.inputs).map(([k,v])=>`${k}=${JSON.stringify(v)}`).join(" · ")}
-                          </div>
-                        )}
-                        {/* Session state */}
-                        {e.session&&(
-                          <div style={{fontFamily:"Courier New, monospace",fontSize:7,
-                            color:"#2A4050",marginBottom:4,lineHeight:1.6}}>
-                            mode:{e.session.harnessMode} · drift:{e.session.driftCount} · σ²:{e.session.smoothedVar?.toFixed(4)??"—"} · calm:{e.session.calmStreak??"—"}
-                          </div>
-                        )}
-                        {/* Fallback note */}
-                        {e.fallback&&(
-                          <div style={{fontFamily:"Courier New, monospace",fontSize:7,
-                            color:"#40D08088",marginBottom:4}}>
-                            ↳ {e.fallback}
-                          </div>
-                        )}
-                        {/* Stack trace */}
-                        {e.stack&&(
-                          <details>
-                            <summary style={{fontFamily:"Courier New, monospace",
-                              fontSize:7,color:"#3A5070",cursor:"pointer",
-                              marginTop:4,userSelect:"none"}}>
-                              stack trace ▾
-                            </summary>
-                            <pre style={{fontFamily:"Courier New, monospace",fontSize:7,
-                              color:"#2A4060",margin:"4px 0 0",
-                              whiteSpace:"pre-wrap",wordBreak:"break-all",
-                              background:"#080C14",padding:"6px 8px",borderRadius:3,
-                              lineHeight:1.6}}>
-                              {e.stack}
-                            </pre>
-                          </details>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {/* Standard event entries */}
-              {eventLog.length===0&&errorLog.length===0?(
-                <div style={{fontFamily:"Courier New, monospace",fontSize:10,
-                  color:"#2A4060",textAlign:"center",padding:"20px"}}>
-                  No events logged yet.
-                </div>
-              ):([...eventLog].reverse().map((e,i)=>{
-                const typeColor=e.type==="probable_hallucination_signal"?"#E8A030"
-                  :e.type==="behavioral_signal"?"#8888FF"
-                  :e.type==="decoherence_alert"?"#E05060"
-                  :e.type==="LOCK_888"?"#8888FF"
-                  :e.type==="calm_streak"?"#40D080"
-                  :"#4A9EFF";
-                return (
-                  <div key={i} style={{padding:"8px 10px",marginBottom:6,
-                    background:"#0A1020",borderRadius:4,
-                    borderLeft:`3px solid ${typeColor}`}}>
-                    <div style={{display:"flex",justifyContent:"space-between",
-                      alignItems:"center",marginBottom:4}}>
-                      <span style={{fontFamily:"Courier New, monospace",fontSize:9,
-                        color:typeColor,letterSpacing:1,fontWeight:"bold"}}>
-                        {e.type.toUpperCase().split("_").join(" ")}
-                      </span>
-                      <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                        color:"#2A4060"}}>
-                        T{e.turn||"?"} · {e.timestamp?.slice(11,19)||""}
-                      </span>
-                    </div>
-                    {e.note&&<div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                      color:"#4A6880",lineHeight:1.5}}>{e.note}</div>}
-                    {e.detail&&<div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                      color:"#4A7090",lineHeight:1.5,marginTop:2}}>{e.detail}</div>}
-                    {e.signals&&Array.isArray(e.signals)&&(
-                      <div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                        color:"#6A8090",lineHeight:1.5,marginTop:2}}>
-                        {e.signals.join(" · ")}
-                      </div>
-                    )}
-                    {e.coherence_score!=null&&(
-                      <div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                        color:"#3A5870",marginTop:2}}>
-                        C={e.coherence_score.toFixed(3)}
-                      </div>
-                    )}
-                    {(e.type==="probable_hallucination_signal"||e.type==="behavioral_signal")&&(
-                      <div style={{marginTop:4}}>
-                        {corrections.some(x=>x.turn===e.turn&&x.type===e.type)
-                          ? <span style={{fontFamily:"Courier New, monospace",fontSize:7,
-                              color:"#40D080",letterSpacing:1}}>✓ MARKED FALSE +</span>
-                          : <button onClick={()=>{
-                              const entry={turn:e.turn,type:e.type,
-                                timestamp:new Date().toISOString(),
-                                signal_detail:e.detail||e.signals?.join(' | ')||''};
-                              setCorrections(p=>[...p,entry]);
-                              setEventLog(p=>[...p,{
-                                timestamp:entry.timestamp,turn:e.turn,
-                                type:"false_positive_correction",
-                                corrected_type:e.type,
-                                note:"User marked as false positive",
-                              }]);
-                            }} style={{padding:"2px 8px",background:"transparent",
-                              border:"1px solid #40D08044",borderRadius:3,
-                              color:"#40D080",cursor:"pointer",fontSize:7,
-                              fontFamily:"Courier New, monospace",letterSpacing:1}}>
-                              FALSE +
-                            </button>
-                        }
-                      </div>
-                    )}
-                  </div>
-                );
-              }))}
-            </div>
-          </div>
-        </div>
-      )}
+      <LogModal
+        showLog={showLog}
+        setShowLog={setShowLog}
+        eventLog={eventLog}
+        errorLog={errorLog}
+        sessionId={sessionId}
+        setExportContent={setExportContent}
+        corrections={corrections}
+      />
 
       {/* BOOKMARKS MODAL */}
-      {showBookmarks&&(
-        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
-          background:"rgba(0,0,0,0.85)",zIndex:1000,display:"flex",
-          alignItems:"center",justifyContent:"center",padding:16}}
-          onClick={()=>setShowBookmarks(false)}>
-          <div style={{background:"#080C14",border:"1px solid #C8860A44",
-            borderRadius:8,maxWidth:720,width:"100%",maxHeight:"88vh",
-            display:"flex",flexDirection:"column",overflow:"hidden"}}
-            onClick={e=>e.stopPropagation()}>
-            {/* Header */}
-            <div style={{display:"flex",justifyContent:"space-between",
-              alignItems:"center",padding:"12px 18px",
-              borderBottom:"1px solid #2A2010",background:"#060A10",flexShrink:0}}>
-              <span style={{fontFamily:"Courier New, monospace",fontSize:11,
-                color:"#C8860A",letterSpacing:2,fontWeight:"bold"}}>
-                ★ SAVED TURNS — {bookmarks.length}
-              </span>
-              <button onClick={()=>setShowBookmarks(false)}
-                style={{background:"none",border:"1px solid #2A4060",borderRadius:4,
-                  color:"#4A6880",cursor:"pointer",fontSize:12,padding:"2px 10px",
-                  fontFamily:"Courier New, monospace"}}>
-                ✕ CLOSE
-              </button>
-            </div>
-            {/* Body */}
-            <div style={{overflowY:"auto",flex:1,padding:"12px 16px"}}>
-              {bookmarks.length===0?(
-                <div style={{fontFamily:"Courier New, monospace",fontSize:10,
-                  color:"#2A4060",textAlign:"center",padding:"20px"}}>
-                  No bookmarks yet. Click ☆ on any assistant turn to save it.
-                </div>
-              ):bookmarks.map((bk,i)=>{
-                const m=bk.metrics;
-                const scoreColor=m.raw==null?"#3A5870":m.raw>.80?"#40D080":m.raw>.65?"#E8A030":"#E05060";
-                return (
-                  <div key={bk.id} style={{marginBottom:16,borderRadius:6,
-                    background:"#0A0E18",border:"1px solid #1A2840",overflow:"hidden"}}>
-                    {/* Turn header */}
-                    <div style={{display:"flex",justifyContent:"space-between",
-                      alignItems:"center",padding:"7px 12px",
-                      background:"#0D1422",borderBottom:"1px solid #1A2840"}}>
-                      <span style={{fontFamily:"Courier New, monospace",fontSize:9,
-                        color:"#C8860A",letterSpacing:2,fontWeight:"bold"}}>
-                        ★ TURN {bk.turn}
-                      </span>
-                      <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                        {m.raw!=null&&(
-                          <span style={{fontFamily:"Courier New, monospace",fontSize:9,
-                            padding:"1px 6px",borderRadius:3,
-                            background:m.raw>.80?"#0A2A1A":m.raw>.65?"#2A1A00":"#2A0A0A",
-                            color:scoreColor,border:`1px solid ${scoreColor}33`}}>
-                            C={m.raw.toFixed(3)}
-                          </span>
-                        )}
-                        {m.kalman!=null&&(
-                          <span style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#2A4060"}}>
-                            K={m.kalman.toFixed(3)}
-                          </span>
-                        )}
-                        {m.smoothedVar!=null&&(
-                          <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                            color:m.smoothedVar>VAR_DECOHERENCE?"#E05060"
-                              :m.smoothedVar>VAR_CAUTION?"#E8A030"
-                              :m.smoothedVar<VAR_CALM?"#40D080":"#7AB8D8"}}>
-                            σ²={m.smoothedVar.toFixed(4)}
-                          </span>
-                        )}
-                        {m.harnessActive&&(
-                          <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                            padding:"1px 5px",borderRadius:3,
-                            background:"#2A0A0A",color:"#E05060",border:"1px solid #E0506033"}}>
-                            ⚠ DRIFT
-                          </span>
-                        )}
-                        {m.hallucinationFlag&&(
-                          <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                            padding:"1px 5px",borderRadius:3,
-                            background:"#1A0A00",color:"#E8A030",border:"1px solid #E8A03033"}}
-                            title={m.hallucinationSignals?.join(" | ")||""}>
-                            ⚠ H-SIG
-                          </span>
-                        )}
-                        {m.behavioralFlag&&(
-                          <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                            padding:"1px 5px",borderRadius:3,
-                            background:"#0A0A1A",color:"#8888FF",border:"1px solid #8888FF33"}}
-                            title={m.behavioralSignals?.map(s=>s.type).join(" | ")||""}>
-                            ⚠ B-SIG
-                          </span>
-                        )}
-                        {m.sourceScore!=null&&(
-                          <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                            padding:"1px 5px",borderRadius:3,
-                            background:m.sourceScore>0.15?"#0A2A1A":"#1A0808",
-                            color:m.sourceScore>0.15?"#40D080":"#E05060",
-                            border:`1px solid ${m.sourceScore>0.15?"#40D08033":"#E0506033"}`}}>
-                            {m.sourceScore>0.15?"✓ SRC":"⚠ SRC"}
-                          </span>
-                        )}
-                        <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                          color:"#2A4060",
-                          borderLeft:"1px solid #1A3050",paddingLeft:8}}>
-                          {HARNESS_MODES[m.mode]?.label??m.mode?.toUpperCase()??"—"}
-                        </span>
-                        <button onClick={()=>toggleBookmark(bk.cohIdx)}
-                          title="Remove bookmark"
-                          style={{background:"none",border:"1px solid #C8860A33",
-                            borderRadius:3,color:"#C8860A",cursor:"pointer",
-                            fontSize:9,padding:"1px 6px",
-                            fontFamily:"Courier New, monospace",opacity:0.7}}>
-                          ★ REMOVE
-                        </button>
-                      </div>
-                    </div>
-                    {/* User prompt */}
-                    <div style={{padding:"8px 12px",
-                      borderBottom:"1px solid #1A2030",background:"#0A1020"}}>
-                      <div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                        color:"#2A4060",letterSpacing:2,marginBottom:4}}>USER</div>
-                      <div style={{fontFamily:"'Trebuchet MS', sans-serif",fontSize:12,
-                        color:"#7A9EBA",lineHeight:1.6,whiteSpace:"pre-wrap"}}>
-                        {bk.userText}
-                      </div>
-                    </div>
-                    {/* Assistant response */}
-                    <div style={{padding:"8px 12px"}}>
-                      <div style={{fontFamily:"Courier New, monospace",fontSize:8,
-                        color:"#2A4060",letterSpacing:2,marginBottom:4}}>ASSISTANT</div>
-                      <div style={{fontFamily:"'Trebuchet MS', sans-serif",fontSize:12,
-                        color:"#B8CDE0",lineHeight:1.6,whiteSpace:"pre-wrap"}}>
-                        {bk.assistantText}
-                      </div>
-                    </div>
-                    {/* V1.5.0: Annotation field */}
-                    <div style={{padding:"6px 12px",borderTop:"1px solid #1A2030",
-                      background:"#080A10"}}>
-                      <div style={{fontFamily:"Courier New, monospace",fontSize:7,
-                        color:"#2A4060",letterSpacing:2,marginBottom:3}}>NOTE</div>
-                      <input
-                        value={bk.note||""}
-                        onChange={e=>setBookmarks(p=>p.map(b=>b.id===bk.id?{...b,note:e.target.value}:b))}
-                        placeholder="Add research note (e.g. example of topic hijack T7)…"
-                        style={{width:"100%",background:"#0A1020",border:"1px solid #1A2840",
-                          borderRadius:3,color:"#7AB8D8",padding:"4px 8px",
-                          fontFamily:"'Trebuchet MS', sans-serif",fontSize:11,
-                          outline:"none",boxSizing:"border-box"}}/>
-                    </div>
-                    {/* Signal detail if present */}
-                    {(m.hallucinationSignals?.length>0||m.behavioralSignals?.length>0)&&(
-                      <div style={{padding:"6px 12px",borderTop:"1px solid #1A2030",
-                        background:"#080C14"}}>
-                        {m.hallucinationSignals?.map((s,j)=>(
-                          <div key={j} style={{fontFamily:"Courier New, monospace",fontSize:8,
-                            color:"#E8A030",lineHeight:1.6}}>⚠ H: {s}</div>
-                        ))}
-                        {m.behavioralSignals?.map((s,j)=>(
-                          <div key={j} style={{fontFamily:"Courier New, monospace",fontSize:8,
-                            color:"#8888FF",lineHeight:1.6}}>⚠ B: {s.detail||s.type}</div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {/* Footer */}
-            <div style={{padding:"8px 18px",borderTop:"1px solid #1A2010",
-              background:"#060A10",flexShrink:0,
-              display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                color:"#2A4060",letterSpacing:1}}>
-                {bookmarks.length} TURN{bookmarks.length!==1?"S":""} SAVED · CLICK ★ REMOVE TO UNSAVE
-              </span>
-              <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                color:"#2A4060",letterSpacing:1}}>
-                V1.5.2 © HUDSON &amp; PERRY
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+      <BookmarksModal
+        showBookmarks={showBookmarks}
+        setShowBookmarks={setShowBookmarks}
+        bookmarks={bookmarks}
+        setBookmarks={setBookmarks}
+        messages={messages}
+        coherenceData={coherenceData}
+        toggleBookmark={toggleBookmark}
+      />
 
       {/* GUIDE MODAL */}
-      {showGuide&&(
-        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
-          background:"rgba(0,0,0,0.85)",zIndex:1000,display:"flex",
-          alignItems:"center",justifyContent:"center",padding:16}}
-          onClick={()=>setShowGuide(false)}>
-          <div style={{background:"#080C14",border:"1px solid #1E4060",
-            borderRadius:8,maxWidth:680,width:"100%",maxHeight:"85vh",
-            display:"flex",flexDirection:"column",overflow:"hidden"}}
-            onClick={e=>e.stopPropagation()}>
-            <div style={{display:"flex",justifyContent:"space-between",
-              alignItems:"center",padding:"12px 18px",
-              borderBottom:"1px solid #1A3050",background:"#060A10",flexShrink:0}}>
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>setGuideTab("guide")}
-                  style={{background:"none",border:`1px solid ${guideTab==="guide"?"#4A9EFF":"#2A4060"}`,
-                    borderRadius:4,color:guideTab==="guide"?"#4A9EFF":"#4A6880",
-                    cursor:"pointer",fontSize:10,padding:"3px 12px",
-                    fontFamily:"Courier New, monospace",letterSpacing:1}}>
-                  USER GUIDE
-                </button>
-                <button onClick={()=>setGuideTab("framework")}
-                  style={{background:"none",border:`1px solid ${guideTab==="framework"?"#1EAAAA":"#2A4060"}`,
-                    borderRadius:4,color:guideTab==="framework"?"#1EAAAA":"#4A6880",
-                    cursor:"pointer",fontSize:10,padding:"3px 12px",
-                    fontFamily:"Courier New, monospace",letterSpacing:1}}>
-                  FRAMEWORK
-                </button>
-              </div>
-              <button onClick={()=>setShowGuide(false)}
-                style={{background:"none",border:"1px solid #2A4060",borderRadius:4,
-                  color:"#4A6880",cursor:"pointer",fontSize:12,padding:"2px 10px",
-                  fontFamily:"Courier New, monospace"}}>
-                ✕ CLOSE
-              </button>
-            </div>
-            <div style={{overflowY:"auto",flex:1,padding:"16px 20px"}}>
-              <pre style={{fontFamily:"Courier New, monospace",fontSize:10,
-                color:"#A8C4E0",lineHeight:1.9,margin:0,
-                whiteSpace:"pre-wrap",wordBreak:"break-word"}}>
-                {guideTab==="guide"?GUIDE_CONTENT:FRAMEWORK_CONTENT}
-              </pre>
-            </div>
-            <div style={{padding:"10px 18px",borderTop:"1px solid #1A3050",
-              background:"#060A10",flexShrink:0,
-              display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontFamily:"Courier New, monospace",fontSize:8,
-                color:"#2A4060",letterSpacing:1}}>
-                © 2026 DAVID HUDSON &amp; DAVID PERRY
-              </span>
-              <div style={{display:"flex",gap:12}}>
-                <a href="https://x.com/RaccoonStampede" target="_blank" rel="noreferrer"
-                  style={{fontFamily:"Courier New, monospace",fontSize:8,
-                    color:"#4A9EFF",textDecoration:"none",letterSpacing:1}}>
-                  𝕏 @RaccoonStampede
-                </a>
-                <a href="https://x.com/Prosperous727" target="_blank" rel="noreferrer"
-                  style={{fontFamily:"Courier New, monospace",fontSize:8,
-                    color:"#4A9EFF",textDecoration:"none",letterSpacing:1}}>
-                  𝕏 @Prosperous727
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <GuideModal
+        showGuide={showGuide}
+        setShowGuide={setShowGuide}
+        guideTab={guideTab}
+        setGuideTab={setGuideTab}
+      />
     </div>
   );
 }
