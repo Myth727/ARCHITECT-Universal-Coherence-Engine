@@ -6,7 +6,7 @@ import {
 
 // ═══════════════════════════════════════════════════════════════
 //  FILE: ARCHITECT.jsx  ← upload to GitHub with this exact name (all caps)
-//  HUDSON & PERRY'S DRIFT LAW — ARCHITECT · V1.5.12
+//  HUDSON & PERRY'S DRIFT LAW — ARCHITECT · V1.5.13
 //  © Hudson & Perry Research
 //  Authors: David Hudson (@RaccoonStampede) · David Perry (@Prosperous727)
 //
@@ -319,7 +319,7 @@ const STOP_WORDS=new Set(["the","and","for","that","this","with","are","was","we
   "would","could","should","does","did","its","you","your","our","can","all","one",
   "also","more","than","then","just","into","over","after","about","there","these"]);
 
-// V1.
+// V1.5.4: merged from buildTfIdf + buildTermFreqDist — single canonical term freq builder.
 function buildTermFreq(tokens) {
   if (!tokens||!tokens.length) return {};
   const freq={};
@@ -692,7 +692,7 @@ function downloadSdePaths(livePaths, coherenceData, sessionId, nPaths, userKappa
 
 // ── System prompt ──────────────────────────────────────────────
 const BASE_SYSTEM =
-  `You are a highly precise technical assistant operating within Hudson & Perry's Drift Law ARCHITECT V1.5.12 coherence framework. `+
+  `You are a highly precise technical assistant operating within Hudson & Perry's Drift Law ARCHITECT V1.5.13 coherence framework. `+
   `Maintain strict logical consistency across all turns. Reference prior context explicitly when building on it. `+
   `When files are attached, analyze them thoroughly. `+
   `When RAG MEMORY is provided, treat it as recalled context. `+
@@ -731,9 +731,9 @@ function buildExportBlock(s) {
     :"  (empty)";
   const kappaNote=(userKappa??KAPPA)!==KAPPA?` ⚠ MODIFIED from 0.444`:"";
   const anchorNote=(userAnchor??RESONANCE_ANCHOR)!==RESONANCE_ANCHOR?` ⚠ MODIFIED from 623.81`:"";
-  return `START_MISSION_PROTOCOL: HUDSON_PERRY_DRIFT_ARCHITECT_V1.5.12
+  return `START_MISSION_PROTOCOL: HUDSON_PERRY_DRIFT_ARCHITECT_V1.5.13
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Hudson & Perry's Drift Law — ARCHITECT V1.5.12
+Hudson & Perry's Drift Law — ARCHITECT V1.5.13
 © Hudson & Perry Research
 ⚠ R&D ONLY — Proxy indicators, no warranty
 
@@ -1035,7 +1035,7 @@ function computeSessionHealth(coherenceData, driftCount, smoothedVar, calmStreak
 const FRAMEWORK_CONTENT=`HUDSON & PERRY'S DRIFT LAW
 TIME-VARYING ERROR DYNAMICS & AI COHERENCE HARNESS
 Authors: David Hudson (@RaccoonStampede) & David Perry (@Prosperous727)
-Version 3.2  |  V1.5.12  |  © 2026
+Version 3.2  |  V1.5.13  |  © 2026
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1508,7 +1508,7 @@ const DisclaimerModal = React.memo(function DisclaimerModal({showDisclaimer,setS
         </div>
         <div style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#4A6060",letterSpacing:1}}>
-          HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.12 · READ IN FULL BEFORE PROCEEDING
+          HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.13 · READ IN FULL BEFORE PROCEEDING
         </div>
       </div>
 
@@ -2048,7 +2048,7 @@ const TuneModal = React.memo(function TuneModal() {
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
           {[
-            // V1.
+            // V1.5.3+: math tunables — epsilon + coherence weights, all user-editable
             ["ε ghost tax floor",mathEpsilon,  setMathEpsilon,  0.01,0.20, 0.005,"#906000",EPSILON],
             ["TF-IDF weight",   mathTfidf,    setMathTfidf,    0.01,0.80, 0.01, "#0A7878",0.25],
             ["JSD weight",      mathJsd,      setMathJsd,      0.01,0.80, 0.01, "#0A7878",0.25],
@@ -2581,7 +2581,7 @@ const BookmarksModal = React.memo(function BookmarksModal() {
         </span>
         <span style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#2E5070",letterSpacing:1}}>
-          V1.5.12 © HUDSON &amp; PERRY
+          V1.5.13 © HUDSON &amp; PERRY
         </span>
       </div>
     </div>
@@ -2748,7 +2748,7 @@ export default function HudsonPerryDriftV1() {
   const [tokenEstimate,   setTokenEstimate]   = useState(0);
   const [bookmarks,       setBookmarks]       = useState([]);
   const [showBookmarks,   setShowBookmarks]   = useState(false);
-  // V1.
+  // V1.5.2: false-positive corrections dataset — exported in RESEARCH CSV
   const [corrections,     setCorrections]     = useState([]);
   // V1.5.0
   const [nPaths,          setNPaths]          = useState(50);
@@ -2838,7 +2838,25 @@ export default function HudsonPerryDriftV1() {
         if (p.adaptiveSigmaOn!=null)   setAdaptiveSigmaOn(p.adaptiveSigmaOn);
         if (p.adaptationRate!=null)    setAdaptationRate(p.adaptationRate);
         if (p.adaptedSigma!=null)      setAdaptedSigma(p.adaptedSigma);
-        if (p.mathEpsilon!=null)        setMathEpsilon(p.mathEpsilon); // V1.5.3 #6
+        if (p.mathEpsilon!=null)        setMathEpsilon(p.mathEpsilon);
+        // P1 fix: restore coherence weights + math tunables
+        if (p.mathTfidf!=null)          setMathTfidf(p.mathTfidf);
+        if (p.mathJsd!=null)            setMathJsd(p.mathJsd);
+        if (p.mathLen!=null)            setMathLen(p.mathLen);
+        if (p.mathStruct!=null)         setMathStruct(p.mathStruct);
+        if (p.mathPersist!=null)        setMathPersist(p.mathPersist);
+        if (p.mathRepThresh!=null)      setMathRepThresh(p.mathRepThresh);
+        if (p.mathKalmanR!=null)        setMathKalmanR(p.mathKalmanR);
+        if (p.mathKalmanSigP!=null)     setMathKalmanSigP(p.mathKalmanSigP);
+        if (p.mathRagTopK!=null)        setMathRagTopK(p.mathRagTopK);
+        if (p.mathMaxTokens!=null)      setMathMaxTokens(p.mathMaxTokens);
+        if (p.sdeAlphaVal!=null)        setSdeAlphaVal(p.sdeAlphaVal);
+        if (p.sdeBetaVal!=null)         setSdeBetaVal(p.sdeBetaVal);
+        if (p.sdeSigmaVal!=null)        setSdeSigmaVal(p.sdeSigmaVal);
+        if (p.sdeAlphaOn!=null)         setSdeAlphaOn(p.sdeAlphaOn);
+        if (p.sdeBetaOn!=null)          setSdeBetaOn(p.sdeBetaOn);
+        if (p.sdeSigmaOn!=null)         setSdeSigmaOn(p.sdeSigmaOn);
+        if (p.postAuditThresh!=null)    setPostAuditThresh(p.postAuditThresh);
         if (p.nPaths!=null)            setNPaths(p.nPaths);
         if (p.postAuditMode)           setPostAuditMode(p.postAuditMode);
         if (p.customMutePhrases)       setCustomMutePhrases(p.customMutePhrases);
@@ -2883,6 +2901,11 @@ export default function HudsonPerryDriftV1() {
           adaptiveSigmaOn,adaptationRate,adaptedSigma,
           nPaths,postAuditMode,customMutePhrases,researchNotes,
           mathEpsilon, // V1.5.3 fix #6: persist user-tuned epsilon
+          // P1 fix: coherence weights + math tunables were missing — reset to defaults on reload
+          mathTfidf,mathJsd,mathLen,mathStruct,mathPersist,mathRepThresh,
+          mathKalmanR,mathKalmanSigP,mathRagTopK,mathMaxTokens,
+          sdeAlphaVal,sdeBetaVal,sdeSigmaVal,sdeAlphaOn,sdeBetaOn,sdeSigmaOn,
+          postAuditThresh,
         }));
       } catch(e) { console.warn("hpdl: config save failed",e); }
     })();
@@ -2890,7 +2913,11 @@ export default function HudsonPerryDriftV1() {
      featKalman,featGARCH,featSDE,featRAG,featPipe,
      featMute,featGate,featBSig,featHSig,featPrune,featZeroDrift,
      adaptiveSigmaOn,adaptationRate,adaptedSigma,
-     nPaths,postAuditMode,customMutePhrases,researchNotes,mathEpsilon]);
+     nPaths,postAuditMode,customMutePhrases,researchNotes,mathEpsilon,
+     mathTfidf,mathJsd,mathLen,mathStruct,mathPersist,mathRepThresh,
+     mathKalmanR,mathKalmanSigP,mathRagTopK,mathMaxTokens,
+     sdeAlphaVal,sdeBetaVal,sdeSigmaVal,sdeAlphaOn,sdeBetaOn,sdeSigmaOn,
+     postAuditThresh]);
 
   useEffect(()=>{
     if (!coherenceData.length&&!bookmarks.length) return;
@@ -2903,12 +2930,15 @@ export default function HudsonPerryDriftV1() {
         }));
       } catch(e) { console.warn("hpdl: data save failed",e); }
     })();
-  // V1.
+  // V1.5.0b: fire on coherenceData or bookmarks change — covers all turn/event updates
   },[coherenceData,bookmarks,eventLog]);
 
   const currentMode=HARNESS_MODES[harnessMode];
   // V1.5.3 fix #6: thread mathEpsilon so the user-tunable value actually propagates
-  const cap_eff=driftLawCapEff(currentMode.gamma_h,mathEpsilon);
+  // P4 fix: memoized — driftLawCapEff is cheap but called every render
+  const cap_eff=useMemo(()=>driftLawCapEff(currentMode.gamma_h,mathEpsilon),[harnessMode,mathEpsilon]);
+  // P5 fix: memoized — messages.filter() on every render was unnecessary
+  const contextPruned=useMemo(()=>messages.filter(m=>m.role==="assistant").length>PRUNE_THRESHOLD,[messages]);
   // V1.5.0: active config — custom uses customConfig, others use PRESETS
   // V1.5.11: cfg memoized — was a plain object expression recomputed every render,
   // producing a new reference each time and causing sendMessage to invalidate constantly.
@@ -2916,7 +2946,6 @@ export default function HudsonPerryDriftV1() {
     activePreset==="CUSTOM" ? customConfig : PRESETS[activePreset]??PRESETS.DEFAULT,
   [activePreset, customConfig]);
   // V1.5.0: live derived values from user-adjustable constants
-  const liveDamping  = 1/(1+userKappa);
   const constantsModified = userKappa!==KAPPA || userAnchor!==RESONANCE_ANCHOR;
   // V1.5.0: recompute SDE paths when nPaths changes
   // N5 fix: memoized — was a plain object spread rebuilt every render,
@@ -2959,7 +2988,7 @@ export default function HudsonPerryDriftV1() {
 
   const removeAttachment=useCallback(id=>{
     setAttachments(prev=>{
-      // V1.
+      // V1.5.5: URL.revokeObjectURL removed — was a no-op on data URIs
       return prev.filter(a=>a.id!==id);
     });
   },[]);
@@ -3037,7 +3066,7 @@ export default function HudsonPerryDriftV1() {
 
   // ── Send message ─────────────────────────────────────────────
   const sendMessage=useCallback(async()=>{
-    // V1.
+    // V1.5.4: read from ref — input state removed to prevent re-renders on keystrokes
     const text=inputValueRef.current.trim();
     if ((!text&&!attachments.length)||isLoading) return;
 
@@ -3057,7 +3086,7 @@ export default function HudsonPerryDriftV1() {
     const turn=turnCount+1;
     setTurnCount(turn);
 
-    // V1.
+    // V1.5.0: mute mode — detected before API call, active phrases from state or defaults
     const muteTriggered=featMute&&detectMuteMode(text,activeMutePhrases);
     setMuteModeActive(muteTriggered);
 
@@ -3615,12 +3644,11 @@ export default function HudsonPerryDriftV1() {
     .filter((d,i,arr)=>i===0||d.mode!==arr[i-1].mode),
   [coherenceData]);
 
-  // V1.
+  // V1.5.5: wrapped in useMemo — applyZeroDriftLock runs 200-iter loop
   const lockStatus=useMemo(()=>
     applyZeroDriftLock(userAnchor-(lastScore??0)*.01,userAnchor),
   [lastScore,userAnchor]);
   const apiKeyValid=apiKey.trim().startsWith("sk-");
-  const contextPruned=messages.filter(m=>m.role==="assistant").length>PRUNE_THRESHOLD;
   // M3 fix: use cfg preset thresholds so MEDICAL/CREATIVE etc. reflect correctly in UI
   const vDec=cfg?.varDecoherence??VAR_DECOHERENCE;
   const vCau=cfg?.varCaution??VAR_CAUTION;
@@ -3769,7 +3797,7 @@ export default function HudsonPerryDriftV1() {
       {/* HEADER */}
       <div style={S.header}>
         <div>
-          <div style={S.title}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.12</div>
+          <div style={S.title}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.13</div>
           <div style={S.subtitle}>
             © HUDSON &amp; PERRY RESEARCH · MUTE:{featMute?"ON":"OFF"} · GATE:{featGate?"ON":"OFF"} · PIPE:{featPipe?"ON":"OFF"} · REWIND:ON · V1.5.8
           </div>
@@ -3968,7 +3996,7 @@ export default function HudsonPerryDriftV1() {
         <div style={{background:"#F8FAFC",borderBottom:"1px solid #1EAAAA44",padding:"12px 20px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <span style={{...S.sectionTitle,marginBottom:0,color:"#0A7878"}}>
-              MISSION PROTOCOL — HUDSON &amp; PERRY ARCHITECT V1.5.12
+              MISSION PROTOCOL — HUDSON &amp; PERRY ARCHITECT V1.5.13
             </span>
             <button style={{...S.exportBtn,background:copied?"#E4F4F4":"transparent",
               color:copied?"#178040":"#0A7878"}} onClick={handleCopyExport}>
@@ -4025,7 +4053,7 @@ export default function HudsonPerryDriftV1() {
               <div style={{margin:"auto",textAlign:"center",
                 fontFamily:"Courier New, monospace",fontSize:11,lineHeight:2}}>
                 <div style={{fontSize:28,marginBottom:12,opacity:.3}}>⬡</div>
-                <div style={{opacity:.5,marginBottom:4}}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.12</div>
+                <div style={{opacity:.5,marginBottom:4}}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.13</div>
                 <div style={{fontSize:9,letterSpacing:2,opacity:.4}}>
                   SDE · KALMAN · GARCH · TF-IDF · JSD · RAG · PIPE · MUTE · GATE · REWIND · ARCHITECT
                 </div>
