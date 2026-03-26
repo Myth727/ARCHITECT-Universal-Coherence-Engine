@@ -5,6 +5,56 @@
 
 ---
 
+## V1.5.13
+- P1: Math tunables now persist across reloads — mathTfidf/Jsd/Len/Struct/Persist/RepThresh, mathKalmanR/SigP, mathRagTopK, mathMaxTokens, SDE param overrides, and postAuditThresh were all missing from hpdl_config save/restore.
+- P2: liveDamping dead code removed — was `1/(1+userKappa)` declared but never referenced.
+- P3: Eight truncated `// V1.` comment stubs replaced with proper descriptions throughout the file.
+- P4: cap_eff wrapped in useMemo([harnessMode, mathEpsilon]) — was recalculated every render.
+- P5: contextPruned wrapped in useMemo([messages]) — messages.filter() no longer runs every render.
+
+---
+
+## V1.5.12
+- N1: Rewind "prev" button now compares against turnSnapshots[0]?.turn (oldest in buffer) not hardcoded 1. After turn 20 buffer rolls — prev was staying enabled and silently doing nothing below buffer floor.
+- N2: downloadResearch now accepts cfg and uses preset healthDriftWeight/BSigWeight/HSigWeight. CSV health column now matches live session health for MEDICAL/CREATIVE/RESEARCH presets.
+- N3: beforeunload effect added — flushes researchNotesRef.current to hpdl_notes_flush storage key on tab close. Recovered on next mount. Prevents notes typed but never blurred from being lost.
+- N4: ScoreBadge extracted above main component — was a function component defined inline causing React to see a new component type on every render.
+- N5: liveSDEOverride wrapped in useMemo — was a plain object spread rebuilt every render, causing sendMessage to always receive a new reference.
+- N6: harnessChangeLog wrapped in useMemo([coherenceData]) — .map().filter() chain no longer runs every render.
+
+---
+
+## V1.5.11
+- Stale V1.5.8 version string fixed in ACTIVE preset display line in TuneModal.
+- cfg memoized — was `PRESETS[activePreset] ?? PRESETS.DEFAULT` as a plain expression every render, producing a new reference and causing sendMessage to invalidate on every render regardless of whether the preset changed.
+
+---
+
+## V1.5.10
+- H1: Rewind "next" button fixed — was comparing rewindTurn vs turnSnapshots.length (always 20 after rolling cap). Now compares against turnSnapshots[turnSnapshots.length-1]?.turn (actual max turn in buffer).
+- H2: RESEARCH export reads researchNotesRef.current || researchNotes — unblurred notes no longer silently lost in export.
+- M2: Live coherence weight sum display in MATH tab — shows Σ = X.XXX, green ✓ when ~1.0, amber ⚠ with explanation when off. Replaces static "should sum to 1.0" text. Weights are independent multipliers; sum of 1.0 is recommended not enforced.
+
+---
+
+## V1.5.9
+- B: Typing bug — onChange replaced with onInput (fires after DOM commit, safer in iframe sandbox). onCompositionEnd added for IME/CJK/iOS handling. setHasInput now guarded — only fires when boolean actually changes (hasVal !== hasInput), preventing re-renders on mid-word keystrokes.
+- A: DisclaimerModal duplicate onClick removed — dead first handler on accept button.
+- C: researchNotes textarea converted to uncontrolled — onBlur updates state, onInput updates ref. Stops keystroke-triggered re-renders when NOTES panel is open.
+- D: S styles object wrapped in useMemo([harnessMode]) — was 62-line object literal rebuilt on every render. Only currentMode.color changes, which depends solely on harnessMode.
+- Grok-4: buildPipeInjection now accepts cfg param and reads cfg.varDecoherence/varCaution/varCalm. Pipe directives now respond to preset thresholds.
+
+---
+
+## V1.5.8
+- React Context migration — TuneCtx (30+ tune params) and SessionCtx (session/modal state) replace 30+ prop-drilling chains. Modal call sites reduced to zero-prop <TuneModal /> etc.
+- Context values memoized — TuneCtx and SessionCtx both wrapped in useMemo. Modals only re-render when their specific slice of state changes.
+- Declaration order fix — context values placed after all useCallback declarations. Previously caused "cannot access toggleBookmark before initialization" on mount.
+- 7 modal sub-components all verified stable with zero-prop call sites.
+
+---
+
+
 ## V1.5.7
 - Text contrast increased throughout light theme (all mid/dim/faint tokens darkened)
 - resetSession now clears textarea DOM, inputValueRef, and hasInput state

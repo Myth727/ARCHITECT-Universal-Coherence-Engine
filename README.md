@@ -2,7 +2,7 @@
 
 ## Hudson & Perry's Drift Law — AI Coherence Engine
 
-**Version 1.5.8** · © 2026 Hudson & Perry Research
+**Version 1.5.13** · © 2026 Hudson & Perry Research
 **Authors:** David Hudson ([@RaccoonStampede](https://x.com/RaccoonStampede)) & David Perry ([@Prosperous727](https://x.com/Prosperous727))
 **License:** MIT
 
@@ -240,26 +240,30 @@ All preset values flow through `cfg` parameters in the SDK functions. Pass `PRES
 
 ---
 
-## ARCHITECT V1.5.8 — What's New
+## ARCHITECT V1.5.13 — What's New Since V1.5.8
 
-The ARCHITECT artifact (ARCHITECT.jsx) is the live React implementation. V1.5.8 adds:
+The ARCHITECT artifact (ARCHITECT.jsx) is the live React implementation. V1.5.9–V1.5.13 adds:
 
-- **React Context architecture** — TuneCtx and SessionCtx replace 30+ prop-drilling chains. Modal call sites are now `<TuneModal />` with zero props.
-- **Light / daytime theme** — THEME constant with 35 semantic color tokens. All inline colors updated.
-- **Typing bug resolved** — uncontrolled textarea + inputValueRef. Component no longer re-renders on every keystroke.
-- **GARCH presets active** — `updateSmoothedVariance` now reads per-preset GARCH params. Previously all presets used module-level defaults.
-- **Epsilon tunable** — `driftLawCapEff` and `driftLawFloor` accept epsilon parameter. MATH tab exposes it.
-- **Lock888 preset-correct** — snapshot now uses `cfg.lock888Streak` per preset.
-- **7 modal sub-components** — ExportContentModal, DisclaimerModal, TuneModal, RewindConfirmModal, LogModal, BookmarksModal, GuideModal extracted from main render.
-- **CHANGELOG.md** — full patch history moved out of JSX header.
+- **Math tunables persist** — coherence weights, Kalman R/SigP, SDE params, post-audit threshold all survive session reload (V1.5.13)
+- **Typing bug resolved** — `onInput` + `onCompositionEnd` + guarded `setHasInput`. No more character jumping in the artifact iframe (V1.5.9)
+- **cfg fully threaded** — `buildPipeInjection`, `assessHallucinationSignals`, `downloadResearch`, status bar, varColor all read preset thresholds. MEDICAL/CREATIVE etc. now behave correctly end-to-end (V1.5.9–V1.5.11)
+- **cfg memoized** — `PRESETS[activePreset]` wrapped in `useMemo` — was rebuilding a new reference every render and invalidating `sendMessage` constantly (V1.5.11)
+- **Rewind prev/next fixed** — both buttons now compare against actual buffer bounds, not hardcoded 1 or `turnSnapshots.length` (V1.5.10/V1.5.12)
+- **Research CSV health corrected** — export now uses preset penalty weights, matching the live session health score (V1.5.12)
+- **researchNotes uncontrolled** — textarea no longer triggers re-renders on every keystroke. beforeunload flush prevents notes from being lost (V1.5.9/V1.5.12)
+- **ScoreBadge extracted** — stable component type above main component (V1.5.12)
+- **liveSDEOverride, harnessChangeLog, cap_eff, contextPruned** — all memoized (V1.5.12/V1.5.13)
+- **S styles memoized** — `useMemo([harnessMode])` (V1.5.9)
+- **8 comment stubs cleaned** — all truncated `// V1.` stubs replaced with proper descriptions (V1.5.13)
+- **React Context architecture** — TuneCtx and SessionCtx replace prop-drilling. Modal call sites are zero-prop (V1.5.8)
 
-See `CHANGELOG.md` for the complete version history (V1.3 → V1.5.8).
+See `CHANGELOG.md` for the complete version history (V1.3 → V1.5.13).
 
 ---
 
 ## ARCHITECT_V158.pdf
 
-The PDF document (`ARCHITECT_V158.pdf`) contains:
+The PDF document (`ARCHITECT_V1513.pdf`) contains:
 - Full mathematical derivations
 - Framework validation status
 - R&D disclaimer and legal notice
@@ -272,7 +276,7 @@ The PDF document (`ARCHITECT_V158.pdf`) contains:
 If you use this in published research:
 
 ```
-Hudson, D. & Perry, D. (2026). Hudson & Perry's Drift Law — ARCHITECT V1.5.8.
+Hudson, D. & Perry, D. (2026). Hudson & Perry's Drift Law — ARCHITECT V1.5.13.
 Hudson & Perry Research. https://github.com/Myth727/Real-Time-LLM-Coherence-Harness-SDE-Bands-Zero-Drift-Lock-
 @RaccoonStampede · @Prosperous727
 ```
