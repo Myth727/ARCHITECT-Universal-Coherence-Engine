@@ -7,19 +7,24 @@
  *   3. Self-contradiction with prior turns
  *
  * Behavioral signals (6 proxies):
- *   Research: Sharma et al. ICLR 2024 (Anthropic) — sycophancy as
- *   systematic RLHF behavior.
- *   1. Roleplay drift    4. Question flooding
- *   2. Sycophancy        5. Topic hijack
- *   3. Hype inflation    6. Unsolicited elaboration
+ *   Research: Sharma et al. ICLR 2024 (Anthropic) — sycophancy as systematic RLHF behavior.
+ *   1. Roleplay drift        4. Question flooding
+ *   2. Sycophancy            5. Topic hijack
+ *   3. Hype inflation        6. Unsolicited elaboration
  *
  * All outputs are proxy indicators — not confirmed detections.
+ *
+ * V1.5.11: assessHallucinationSignals accepts optional cfg param.
+ *   Reads cfg.varCaution so MEDICAL preset's tighter threshold (0.090)
+ *   applies. Previously always used module-level VAR_CAUTION (0.120)
+ *   regardless of preset, making MEDICAL no different from DEFAULT for H-sigs.
  */
 
-import { VAR_CAUTION } from './constants';
+import { VAR_CAUTION, type PresetConfig } from './constants';
 import { tokenize, tfidfSimilarity, Message, getTextFromContent } from './coherence';
 
 // ── Pattern sets ────────────────────────────────────────────────
+
 const ROLEPLAY_PATTERNS = [
   /\bI am (now |here |acting as |playing )/i,
   /\bas your (assistant|advisor|coach|mentor|guide|friend)/i,
@@ -63,28 +68,30 @@ const CONFIDENCE_PATTERNS = [
 ];
 
 // ── Types ───────────────────────────────────────────────────────
+
 export interface BehavioralSignal {
   type:   string;
   detail: string;
 }
 
 export interface BehavioralAssessment {
-  flagged:        boolean;
-  signals:        BehavioralSignal[];
-  questionCount:  number;
-  roleplays:      number;
-  sycophancies:   number;
+  flagged:       boolean;
+  signals:       BehavioralSignal[];
+  questionCount: number;
+  roleplays:     number;
+  sycophancies:  number;
 }
 
 export interface HallucinationAssessment {
-  flagged:          boolean;
-  signals:          string[];
-  sourceScore:      number | null;
-  confidenceHits:   number;
-  contradiction:    boolean;
+  flagged:        boolean;
+  signals:        string[];
+  sourceScore:    number | null;
+  confidenceHits: number;
+  contradiction:  boolean;
 }
 
 // ── Behavioral signals ──────────────────────────────────────────
+
 export function assessBehavioralSignals(
   responseText: string,
   userText:     string,
@@ -100,11 +107,11 @@ export function assessBehavioralSignals(
   const unsolicited  = UNSOLICITED_PATTERNS.filter(p => p.test(responseText));
 
   if (roleplays.length > 0)
-    signals.push({ type: 'roleplay_drift', detail: `${roleplays.length} roleplay pattern(s)` });
+    signals.push({ type: 'roleplay_drift',   detail: `${roleplays.length} roleplay pattern(s)` });
   if (sycophancies.length >= 2)
-    signals.push({ type: 'sycophancy', detail: `${sycophancies.length} flattery pattern(s)` });
+    signals.push({ type: 'sycophancy',        detail: `${sycophancies.length} flattery pattern(s)` });
   if (hypes.length >= 2)
-    signals.push({ type: 'hype_inflation', detail: `${hypes.length} hype pattern(s)` });
+    signals.push({ type: 'hype_inflation',    detail: `${hypes.length} hype pattern(s)` });
   if (qCount >= 4)
     signals.push({ type: 'question_flooding', detail: `${qCount} questions in response` });
 
@@ -121,13 +128,20 @@ export function assessBehavioralSignals(
     ? ah.reduce((s, m) => s + getTextFromContent(m.content).split(/\s+/).length, 0) / ah.length
     : 0;
   if (unsolicited.length > 0 || (avgLen > 0 && wordCount > avgLen * 2.5 && ah.length >= 2))
-    signals.push({ type: 'unsolicited_elaboration', detail: `Response is ${wordCount} words (avg ${Math.round(avgLen)})` });
+    signals.push({ type: 'unsolicited_elaboration',
+      detail: `Response is ${wordCount} words (avg ${Math.round(avgLen)})` });
 
-  return { flagged: signals.length > 0, signals, questionCount: qCount,
-    roleplays: roleplays.length, sycophancies: sycophancies.length };
+  return {
+    flagged:       signals.length > 0,
+    signals,
+    questionCount: qCount,
+    roleplays:     roleplays.length,
+    sycophancies:  sycophancies.length,
+  };
 }
 
 // ── Hallucination signals ───────────────────────────────────────
+
 export function detectConfidenceLanguage(text: string): number {
   return CONFIDENCE_PATTERNS.filter(p => p.test(text)).length;
 }
@@ -149,29 +163,46 @@ export function checkSelfContradiction(
 ): boolean {
   const ah = history.filter(m => m.role === 'assistant');
   if (ah.length < 2) return false;
+
   const respT   = tokenize(responseText);
   const related = ah.slice(-6).filter(m => {
     const sim = tfidfSimilarity(respT, tokenize(getTextFromContent(m.content)));
     return sim > 0.35;
   });
   if (!related.length) return false;
+
   const avgSim = related.reduce((s, m) =>
     s + tfidfSimilarity(respT, tokenize(getTextFromContent(m.content))), 0) / related.length;
   return avgSim < 0.15;
 }
 
+/**
+ * Assess hallucination proxy signals for a response.
+ *
+ * @param responseText  Raw assistant response text
+ * @param smoothedVar   Current GARCH smoothed variance
+ * @param sourceTexts   Attached document texts (for source consistency check)
+ * @param history       Full message history
+ * @param cfg           Optional preset config — reads cfg.varCaution so MEDICAL
+ *                      preset's tighter threshold (0.090) applies. Falls back to
+ *                      module-level VAR_CAUTION (0.120) when omitted.
+ */
 export function assessHallucinationSignals(
   responseText: string,
   smoothedVar:  number,
   sourceTexts:  string[],
   history:      Message[],
+  cfg?:         Partial<PresetConfig>,
 ): HallucinationAssessment {
   const confidenceHits = detectConfidenceLanguage(responseText);
   const sourceScore    = checkSourceConsistency(responseText, sourceTexts);
   const contradiction  = checkSelfContradiction(responseText, history);
-  const signals: string[] = [];
 
-  if (confidenceHits >= 2 && smoothedVar > VAR_CAUTION)
+  // V1.5.11: read preset varCaution — MEDICAL (0.090) fires earlier than DEFAULT (0.120)
+  const vCau = cfg?.varCaution ?? VAR_CAUTION;
+
+  const signals: string[] = [];
+  if (confidenceHits >= 2 && smoothedVar > vCau)
     signals.push(`high-confidence language (${confidenceHits} markers) with elevated variance`);
   if (sourceScore !== null && sourceScore < 0.08)
     signals.push(`low source consistency (${(sourceScore * 100).toFixed(1)}% match)`);
