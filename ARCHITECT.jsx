@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, useContext, createContext } from "react";
 import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Scatter
@@ -6,7 +6,7 @@ import {
 
 // ═══════════════════════════════════════════════════════════════
 //  FILE: ARCHITECT.jsx  ← upload to GitHub with this exact name (all caps)
-//  HUDSON & PERRY'S DRIFT LAW — ARCHITECT · V1.5.7
+//  HUDSON & PERRY'S DRIFT LAW — ARCHITECT · V1.5.8
 //  © Hudson & Perry Research
 //  Authors: David Hudson (@RaccoonStampede) · David Perry (@Prosperous727)
 //
@@ -680,7 +680,7 @@ function downloadSdePaths(livePaths, coherenceData, sessionId, nPaths, userKappa
 
 // ── System prompt ──────────────────────────────────────────────
 const BASE_SYSTEM =
-  `You are a highly precise technical assistant operating within Hudson & Perry's Drift Law ARCHITECT V1.5.7 coherence framework. `+
+  `You are a highly precise technical assistant operating within Hudson & Perry's Drift Law ARCHITECT V1.5.8 coherence framework. `+
   `Maintain strict logical consistency across all turns. Reference prior context explicitly when building on it. `+
   `When files are attached, analyze them thoroughly. `+
   `When RAG MEMORY is provided, treat it as recalled context. `+
@@ -719,9 +719,9 @@ function buildExportBlock(s) {
     :"  (empty)";
   const kappaNote=(userKappa??KAPPA)!==KAPPA?` ⚠ MODIFIED from 0.444`:"";
   const anchorNote=(userAnchor??RESONANCE_ANCHOR)!==RESONANCE_ANCHOR?` ⚠ MODIFIED from 623.81`:"";
-  return `START_MISSION_PROTOCOL: HUDSON_PERRY_DRIFT_ARCHITECT_V1.5.7
+  return `START_MISSION_PROTOCOL: HUDSON_PERRY_DRIFT_ARCHITECT_V1.5.8
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Hudson & Perry's Drift Law — ARCHITECT V1.5.7
+Hudson & Perry's Drift Law — ARCHITECT V1.5.8
 © Hudson & Perry Research
 ⚠ R&D ONLY — Proxy indicators, no warranty
 
@@ -1021,7 +1021,7 @@ function computeSessionHealth(coherenceData, driftCount, smoothedVar, calmStreak
 const FRAMEWORK_CONTENT=`HUDSON & PERRY'S DRIFT LAW
 TIME-VARYING ERROR DYNAMICS & AI COHERENCE HARNESS
 Authors: David Hudson (@RaccoonStampede) & David Perry (@Prosperous727)
-Version 3.2  |  V1.5.7  |  © 2026
+Version 3.2  |  V1.5.8  |  © 2026
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1397,13 +1397,24 @@ HEALTH PENALTY WEIGHTS (TUNE → CUSTOM → Health weights)
 𝕏 @Prosperous727 (David Perry)`;
 
 // ═══════════════════════════════════════════════════════════════
+//  CONTEXTS (V1.5.8 — Phase 2 of component split)
+//  TuneCtx   — all TUNE panel state (was 30+ props on TuneModal)
+//  SessionCtx — session data shared by Log, Bookmarks, Export modals
+//  State still lives in HudsonPerryDriftV1. Contexts are value objects
+//  memoized there. Modals read via useContext — no prop drilling.
+// ═══════════════════════════════════════════════════════════════
+const TuneCtx    = createContext(null);
+const SessionCtx = createContext(null);
+
+// ═══════════════════════════════════════════════════════════════
 //  MODAL SUB-COMPONENTS (V1.5.6 — extracted from main render)
 //  Each receives only the props it needs. React.memo prevents
 //  re-renders when unrelated state changes in the main component.
 //  State management stays in HudsonPerryDriftV1 — no restructure needed.
 // ═══════════════════════════════════════════════════════════════
 // ── ExportContentModal ──────────────────────────────────────────────
-const ExportContentModal = React.memo(function ExportContentModal({exportContent,setExportContent,exportCopied,setExportCopied}) {
+const ExportContentModal = React.memo(function ExportContentModal() {
+  const {exportContent,setExportContent,exportCopied,setExportCopied} = useContext(SessionCtx);
   if (!exportContent) return null;
   return (
   <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
@@ -1483,7 +1494,7 @@ const DisclaimerModal = React.memo(function DisclaimerModal({showDisclaimer,setS
         </div>
         <div style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#4A6060",letterSpacing:1}}>
-          HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.7 · READ IN FULL BEFORE PROCEEDING
+          HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.8 · READ IN FULL BEFORE PROCEEDING
         </div>
       </div>
 
@@ -1569,7 +1580,24 @@ const DisclaimerModal = React.memo(function DisclaimerModal({showDisclaimer,setS
 });
 
 // ── TuneModal ──────────────────────────────────────────────
-const TuneModal = React.memo(function TuneModal({showTuning,setShowTuning,activePreset,setActivePreset,customConfig,setCustomConfig,userKappa,setUserKappa,userAnchor,setUserAnchor,featKalman,setFeatKalman,featGARCH,setFeatGARCH,featSDE,setFeatSDE,featRAG,setFeatRAG,featPipe,setFeatPipe,featMute,setFeatMute,featGate,setFeatGate,featBSig,setFeatBSig,featHSig,setFeatHSig,featPrune,setFeatPrune,featZeroDrift,setFeatZeroDrift,nPaths,setNPaths,postAuditMode,setPostAuditMode,postAuditThresh,setPostAuditThresh,adaptiveSigmaOn,setAdaptiveSigmaOn,adaptedSigma,adaptationRate,setAdaptationRate,sdeAlphaVal,setSdeAlphaVal,sdeBetaVal,setSdeBetaVal,sdeSigmaVal,setSdeSigmaVal,sdeAlphaOn,setSdeAlphaOn,sdeBetaOn,setSdeBetaOn,sdeSigmaOn,setSdeSigmaOn,customMutePhrases,setCustomMutePhrases,mutePhraseInput,setMutePhraseInput,mathEpsilon,setMathEpsilon,mathTfidf,setMathTfidf,mathJsd,setMathJsd,mathLen,setMathLen,mathStruct,setMathStruct,mathPersist,setMathPersist,mathRepThresh,setMathRepThresh,mathKalmanR,setMathKalmanR,mathKalmanSigP,setMathKalmanSigP,mathRagTopK,setMathRagTopK,mathMaxTokens,setMathMaxTokens,tuneTab,setTuneTab,pruneThreshold,setPruneThreshold,pruneKeep,setPruneKeep,showParams,setShowParams}) {
+const TuneModal = React.memo(function TuneModal() {
+  const {
+    showTuning,setShowTuning,activePreset,setActivePreset,customConfig,setCustomConfig,
+    userKappa,setUserKappa,userAnchor,setUserAnchor,
+    featKalman,setFeatKalman,featGARCH,setFeatGARCH,featSDE,setFeatSDE,
+    featRAG,setFeatRAG,featPipe,setFeatPipe,featMute,setFeatMute,featGate,setFeatGate,
+    featBSig,setFeatBSig,featHSig,setFeatHSig,featPrune,setFeatPrune,featZeroDrift,setFeatZeroDrift,
+    nPaths,setNPaths,postAuditMode,setPostAuditMode,postAuditThresh,setPostAuditThresh,
+    adaptiveSigmaOn,setAdaptiveSigmaOn,adaptedSigma,adaptationRate,setAdaptationRate,
+    sdeAlphaVal,setSdeAlphaVal,sdeBetaVal,setSdeBetaVal,sdeSigmaVal,setSdeSigmaVal,
+    sdeAlphaOn,setSdeAlphaOn,sdeBetaOn,setSdeBetaOn,sdeSigmaOn,setSdeSigmaOn,
+    customMutePhrases,setCustomMutePhrases,mutePhraseInput,setMutePhraseInput,
+    mathEpsilon,setMathEpsilon,mathTfidf,setMathTfidf,mathJsd,setMathJsd,
+    mathLen,setMathLen,mathStruct,setMathStruct,mathPersist,setMathPersist,
+    mathRepThresh,setMathRepThresh,mathKalmanR,setMathKalmanR,mathKalmanSigP,setMathKalmanSigP,
+    mathRagTopK,setMathRagTopK,mathMaxTokens,setMathMaxTokens,
+    tuneTab,setTuneTab,pruneThreshold,setPruneThreshold,pruneKeep,setPruneKeep,showParams,setShowParams,
+  } = useContext(TuneCtx);
   if (!showTuning) return null;
   return (
   <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
@@ -2066,7 +2094,7 @@ const TuneModal = React.memo(function TuneModal({showTuning,setShowTuning,active
         display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#2E5070",letterSpacing:1}}>
-          ACTIVE: {PRESETS[activePreset]?.label??activePreset} · κ={userKappa.toFixed(4)} · V1.5.7
+          ACTIVE: {PRESETS[activePreset]?.label??activePreset} · κ={userKappa.toFixed(4)} · V1.5.8
         </span>
         <button onClick={()=>setShowTuning(false)}
           style={{padding:"4px 14px",background:"#EEF8F2",
@@ -2122,7 +2150,8 @@ const RewindConfirmModal = React.memo(function RewindConfirmModal({rewindConfirm
 });
 
 // ── LogModal ──────────────────────────────────────────────
-const LogModal = React.memo(function LogModal({showLog,setShowLog,eventLog,errorLog,sessionId,setExportContent,corrections}) {
+const LogModal = React.memo(function LogModal() {
+  const {showLog,setShowLog,eventLog,errorLog,sessionId,setExportContent,corrections} = useContext(SessionCtx);
   if (!showLog) return null;
   return (
   <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
@@ -2355,7 +2384,8 @@ const LogModal = React.memo(function LogModal({showLog,setShowLog,eventLog,error
 });
 
 // ── BookmarksModal ──────────────────────────────────────────────
-const BookmarksModal = React.memo(function BookmarksModal({showBookmarks,setShowBookmarks,bookmarks,setBookmarks,messages,coherenceData,toggleBookmark}) {
+const BookmarksModal = React.memo(function BookmarksModal() {
+  const {showBookmarks,setShowBookmarks,bookmarks,setBookmarks,messages,coherenceData,toggleBookmark} = useContext(SessionCtx);
   if (!showBookmarks) return null;
   return (
   <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
@@ -2532,7 +2562,7 @@ const BookmarksModal = React.memo(function BookmarksModal({showBookmarks,setShow
         </span>
         <span style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#2E5070",letterSpacing:1}}>
-          V1.5.7 © HUDSON &amp; PERRY
+          V1.5.8 © HUDSON &amp; PERRY
         </span>
       </div>
     </div>
@@ -3542,6 +3572,42 @@ export default function HudsonPerryDriftV1() {
       C={score.toFixed(3)}</span>;
   };
 
+  // ── V1.5.8 Context values — must be AFTER all useCallback declarations ──
+  // sessionCtxValue includes toggleBookmark which is defined above.
+  // Placing these before their deps causes "cannot access before initialization".
+  const tuneCtxValue = useMemo(()=>({
+    showTuning,setShowTuning,activePreset,setActivePreset,customConfig,setCustomConfig,
+    userKappa,setUserKappa,userAnchor,setUserAnchor,
+    featKalman,setFeatKalman,featGARCH,setFeatGARCH,featSDE,setFeatSDE,
+    featRAG,setFeatRAG,featPipe,setFeatPipe,featMute,setFeatMute,featGate,setFeatGate,
+    featBSig,setFeatBSig,featHSig,setFeatHSig,featPrune,setFeatPrune,featZeroDrift,setFeatZeroDrift,
+    nPaths,setNPaths,postAuditMode,setPostAuditMode,postAuditThresh,setPostAuditThresh,
+    adaptiveSigmaOn,setAdaptiveSigmaOn,adaptedSigma,adaptationRate,setAdaptationRate,
+    sdeAlphaVal,setSdeAlphaVal,sdeBetaVal,setSdeBetaVal,sdeSigmaVal,setSdeSigmaVal,
+    sdeAlphaOn,setSdeAlphaOn,sdeBetaOn,setSdeBetaOn,sdeSigmaOn,setSdeSigmaOn,
+    customMutePhrases,setCustomMutePhrases,mutePhraseInput,setMutePhraseInput,
+    mathEpsilon,setMathEpsilon,mathTfidf,setMathTfidf,mathJsd,setMathJsd,
+    mathLen,setMathLen,mathStruct,setMathStruct,mathPersist,setMathPersist,
+    mathRepThresh,setMathRepThresh,mathKalmanR,setMathKalmanR,mathKalmanSigP,setMathKalmanSigP,
+    mathRagTopK,setMathRagTopK,mathMaxTokens,setMathMaxTokens,
+    tuneTab,setTuneTab,pruneThreshold,setPruneThreshold,pruneKeep,setPruneKeep,showParams,setShowParams,
+  }),[showTuning,activePreset,customConfig,userKappa,userAnchor,
+      featKalman,featGARCH,featSDE,featRAG,featPipe,featMute,featGate,
+      featBSig,featHSig,featPrune,featZeroDrift,nPaths,postAuditMode,postAuditThresh,
+      adaptiveSigmaOn,adaptedSigma,adaptationRate,
+      sdeAlphaVal,sdeBetaVal,sdeSigmaVal,sdeAlphaOn,sdeBetaOn,sdeSigmaOn,
+      customMutePhrases,mutePhraseInput,
+      mathEpsilon,mathTfidf,mathJsd,mathLen,mathStruct,mathPersist,mathRepThresh,
+      mathKalmanR,mathKalmanSigP,mathRagTopK,mathMaxTokens,
+      tuneTab,pruneThreshold,pruneKeep,showParams]);
+
+  const sessionCtxValue = useMemo(()=>({
+    exportContent,setExportContent,exportCopied,setExportCopied,
+    showLog,setShowLog,eventLog,errorLog,sessionId,corrections,
+    showBookmarks,setShowBookmarks,bookmarks,setBookmarks,messages,coherenceData,toggleBookmark,
+  }),[exportContent,exportCopied,showLog,eventLog,errorLog,sessionId,corrections,
+     showBookmarks,bookmarks,messages,coherenceData,toggleBookmark]);
+
   // ── Styles ───────────────────────────────────────────────────
   const S={
     root:{display:"flex",flexDirection:"column",height:"100vh",background:THEME.bgRoot,
@@ -3621,6 +3687,8 @@ export default function HudsonPerryDriftV1() {
    featGate,featBSig,featHSig,featPrune,featZeroDrift,nPaths,postAuditMode]);
 
   return (
+    <TuneCtx.Provider value={tuneCtxValue}>
+    <SessionCtx.Provider value={sessionCtxValue}>
     <div style={S.root}>
       <style>{`
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
@@ -3638,9 +3706,9 @@ export default function HudsonPerryDriftV1() {
       {/* HEADER */}
       <div style={S.header}>
         <div>
-          <div style={S.title}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.7</div>
+          <div style={S.title}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.8</div>
           <div style={S.subtitle}>
-            © HUDSON &amp; PERRY RESEARCH · MUTE:{featMute?"ON":"OFF"} · GATE:{featGate?"ON":"OFF"} · PIPE:{featPipe?"ON":"OFF"} · REWIND:ON · V1.5.7
+            © HUDSON &amp; PERRY RESEARCH · MUTE:{featMute?"ON":"OFF"} · GATE:{featGate?"ON":"OFF"} · PIPE:{featPipe?"ON":"OFF"} · REWIND:ON · V1.5.8
           </div>
           <div style={{display:"flex",gap:10,marginTop:3}}>
             <a href="https://x.com/RaccoonStampede" target="_blank" rel="noreferrer"
@@ -3821,7 +3889,7 @@ export default function HudsonPerryDriftV1() {
         <div style={{background:"#F8FAFC",borderBottom:"1px solid #1EAAAA44",padding:"12px 20px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <span style={{...S.sectionTitle,marginBottom:0,color:"#0A7878"}}>
-              MISSION PROTOCOL — HUDSON &amp; PERRY ARCHITECT V1.5.7
+              MISSION PROTOCOL — HUDSON &amp; PERRY ARCHITECT V1.5.8
             </span>
             <button style={{...S.exportBtn,background:copied?"#E4F4F4":"transparent",
               color:copied?"#178040":"#0A7878"}} onClick={handleCopyExport}>
@@ -3866,7 +3934,7 @@ export default function HudsonPerryDriftV1() {
               <div style={{margin:"auto",textAlign:"center",
                 fontFamily:"Courier New, monospace",fontSize:11,lineHeight:2}}>
                 <div style={{fontSize:28,marginBottom:12,opacity:.3}}>⬡</div>
-                <div style={{opacity:.5,marginBottom:4}}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.7</div>
+                <div style={{opacity:.5,marginBottom:4}}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.8</div>
                 <div style={{fontSize:9,letterSpacing:2,opacity:.4}}>
                   SDE · KALMAN · GARCH · TF-IDF · JSD · RAG · PIPE · MUTE · GATE · REWIND · ARCHITECT
                 </div>
@@ -4438,12 +4506,7 @@ export default function HudsonPerryDriftV1() {
       </div>
 
       {/* EXPORT CONTENT MODAL */}
-      <ExportContentModal
-        exportContent={exportContent}
-        setExportContent={setExportContent}
-        exportCopied={exportCopied}
-        setExportCopied={setExportCopied}
-      />
+      <ExportContentModal />
 
       {/* R&D DISCLAIMER MODAL — shown on load */}
       <DisclaimerModal
@@ -4453,98 +4516,9 @@ export default function HudsonPerryDriftV1() {
       />
 
       {/* TUNE MODAL — Presets, Feature Toggles, Custom Config */}
-      <TuneModal
-        showTuning={showTuning}
-        setShowTuning={setShowTuning}
-        activePreset={activePreset}
-        setActivePreset={setActivePreset}
-        customConfig={customConfig}
-        setCustomConfig={setCustomConfig}
-        userKappa={userKappa}
-        setUserKappa={setUserKappa}
-        userAnchor={userAnchor}
-        setUserAnchor={setUserAnchor}
-        featKalman={featKalman}
-        setFeatKalman={setFeatKalman}
-        featGARCH={featGARCH}
-        setFeatGARCH={setFeatGARCH}
-        featSDE={featSDE}
-        setFeatSDE={setFeatSDE}
-        featRAG={featRAG}
-        setFeatRAG={setFeatRAG}
-        featPipe={featPipe}
-        setFeatPipe={setFeatPipe}
-        featMute={featMute}
-        setFeatMute={setFeatMute}
-        featGate={featGate}
-        setFeatGate={setFeatGate}
-        featBSig={featBSig}
-        setFeatBSig={setFeatBSig}
-        featHSig={featHSig}
-        setFeatHSig={setFeatHSig}
-        featPrune={featPrune}
-        setFeatPrune={setFeatPrune}
-        featZeroDrift={featZeroDrift}
-        setFeatZeroDrift={setFeatZeroDrift}
-        nPaths={nPaths}
-        setNPaths={setNPaths}
-        postAuditMode={postAuditMode}
-        setPostAuditMode={setPostAuditMode}
-        postAuditThresh={postAuditThresh}
-        setPostAuditThresh={setPostAuditThresh}
-        adaptiveSigmaOn={adaptiveSigmaOn}
-        setAdaptiveSigmaOn={setAdaptiveSigmaOn}
-        adaptedSigma={adaptedSigma}
-        adaptationRate={adaptationRate}
-        setAdaptationRate={setAdaptationRate}
-        sdeAlphaVal={sdeAlphaVal}
-        setSdeAlphaVal={setSdeAlphaVal}
-        sdeBetaVal={sdeBetaVal}
-        setSdeBetaVal={setSdeBetaVal}
-        sdeSigmaVal={sdeSigmaVal}
-        setSdeSigmaVal={setSdeSigmaVal}
-        sdeAlphaOn={sdeAlphaOn}
-        setSdeAlphaOn={setSdeAlphaOn}
-        sdeBetaOn={sdeBetaOn}
-        setSdeBetaOn={setSdeBetaOn}
-        sdeSigmaOn={sdeSigmaOn}
-        setSdeSigmaOn={setSdeSigmaOn}
-        customMutePhrases={customMutePhrases}
-        setCustomMutePhrases={setCustomMutePhrases}
-        mutePhraseInput={mutePhraseInput}
-        setMutePhraseInput={setMutePhraseInput}
-        mathEpsilon={mathEpsilon}
-        setMathEpsilon={setMathEpsilon}
-        mathTfidf={mathTfidf}
-        setMathTfidf={setMathTfidf}
-        mathJsd={mathJsd}
-        setMathJsd={setMathJsd}
-        mathLen={mathLen}
-        setMathLen={setMathLen}
-        mathStruct={mathStruct}
-        setMathStruct={setMathStruct}
-        mathPersist={mathPersist}
-        setMathPersist={setMathPersist}
-        mathRepThresh={mathRepThresh}
-        setMathRepThresh={setMathRepThresh}
-        mathKalmanR={mathKalmanR}
-        setMathKalmanR={setMathKalmanR}
-        mathKalmanSigP={mathKalmanSigP}
-        setMathKalmanSigP={setMathKalmanSigP}
-        mathRagTopK={mathRagTopK}
-        setMathRagTopK={setMathRagTopK}
-        mathMaxTokens={mathMaxTokens}
-        setMathMaxTokens={setMathMaxTokens}
-        tuneTab={tuneTab}
-        setTuneTab={setTuneTab}
-        pruneThreshold={pruneThreshold}
-        setPruneThreshold={setPruneThreshold}
-        pruneKeep={pruneKeep}
-        setPruneKeep={setPruneKeep}
-        showParams={showParams}
-        setShowParams={setShowParams}
-      />
+      <TuneModal />
 
+      {/* REWIND CONFIRM MODAL */}
       {/* REWIND CONFIRM MODAL */}
       <RewindConfirmModal
         rewindConfirm={rewindConfirm}
@@ -4553,26 +4527,10 @@ export default function HudsonPerryDriftV1() {
       />
 
       {/* LOG MODAL */}
-      <LogModal
-        showLog={showLog}
-        setShowLog={setShowLog}
-        eventLog={eventLog}
-        errorLog={errorLog}
-        sessionId={sessionId}
-        setExportContent={setExportContent}
-        corrections={corrections}
-      />
+      <LogModal />
 
       {/* BOOKMARKS MODAL */}
-      <BookmarksModal
-        showBookmarks={showBookmarks}
-        setShowBookmarks={setShowBookmarks}
-        bookmarks={bookmarks}
-        setBookmarks={setBookmarks}
-        messages={messages}
-        coherenceData={coherenceData}
-        toggleBookmark={toggleBookmark}
-      />
+      <BookmarksModal />
 
       {/* GUIDE MODAL */}
       <GuideModal
@@ -4582,5 +4540,7 @@ export default function HudsonPerryDriftV1() {
         setGuideTab={setGuideTab}
       />
     </div>
+    </SessionCtx.Provider>
+    </TuneCtx.Provider>
   );
 }
