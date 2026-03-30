@@ -1,6 +1,6 @@
 /**
  * HUDSON & PERRY DRIFT LAW — SDK
- * Version 1.5.13
+ * Version 1.5.29
  *
  * © 2026 Hudson & Perry Research
  * Authors: David Hudson (@RaccoonStampede) & David Perry (@Prosperous727)

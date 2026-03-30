@@ -12,13 +12,13 @@
  * VAR_SMOOTH_ALPHA (was declared but never referenced anywhere).
  */
 
-// ── Hudson Constants ────────────────────────────────────────────
-export const KAPPA            = 0.444;           // Hudson Constant — drives damping, SDE, Kalman
+// ── Framework Constants ─────────────────────────────────────────
+export const KAPPA            = 0.444;           // Damping constant — drives SDE, Kalman smoothing
 export const DAMPING          = 1 / (1 + KAPPA); // 0.6925
 export const EPSILON          = 0.05;            // Ghost tax floor — ~5% inefficiency
-export const RESONANCE_ANCHOR = 623.81;          // Hz — Zero-Drift Lock target
+export const RESONANCE_ANCHOR = 623.81;          // Stability anchor — convergence target
 export const LOCK_888         = 0.888;           // Full coherence stabilization target
-export const HC_MASS_LOSS     = KAPPA;           // Alias — Hudson Constant (mass-loss domain)
+export const HC_MASS_LOSS     = KAPPA;           // Alias for damping constant
 export const AGAPE_STAB       = 0.1;             // Agape stabilization coefficient
 export const SENSITIVITY      = 0.30;            // HALO threshold scalar
 export const HALO_THRESHOLD   = 0.0004 * (1 + SENSITIVITY); // 0.00052
@@ -33,7 +33,7 @@ export const SDE_PARAMS = {
   beta_p:  0.18,                  // Periodic forcing amplitude
   omega:   2 * Math.PI / 12,      // Forcing frequency (12-step period)
   sigma:   0.10,                  // Base diffusion coefficient
-  kappa:   KAPPA,                 // Hudson Constant — locked to framework identity
+  kappa:   KAPPA,                 // Damping constant — locked to framework identity
 };
 
 // ── GARCH(1,1) defaults ─────────────────────────────────────────

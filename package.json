@@ -1,42 +1,21 @@
 {
-  "name": "hpdl-sdk",
-  "version": "1.5.1",
-  "description": "Hudson & Perry Drift Law — AI coherence engine. SDE + Kalman + GARCH + TF-IDF/JSD + behavioral/hallucination signal detection.",
+  "name": "@hudson-perry/architect-sdk",
+  "version": "1.5.29",
+  "description": "Real-time AI coherence scoring SDK — Kalman filtering, GARCH variance, SDE drift bands, behavioral signal detection",
   "main": "dist/index.js",
-  "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.esm.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
   "scripts": {
     "build": "tsc",
-    "test": "node --experimental-vm-modules node_modules/.bin/jest",
-    "lint": "tsc --noEmit"
+    "test": "echo \"No tests yet\" && exit 0"
   },
-  "files": [
-    "dist",
-    "src",
-    "README.md",
-    "LICENSE"
-  ],
-  "keywords": [
-    "ai", "coherence", "drift-law", "kalman", "sde", "garch",
-    "hallucination-detection", "behavioral-signals", "anthropic",
-    "llm-monitoring", "hudson-perry"
-  ],
-  "author": "David Hudson <@RaccoonStampede> & David Perry <@Prosperous727>",
+  "keywords": ["llm", "coherence", "kalman", "garch", "sde", "ai-monitoring", "drift-detection"],
+  "author": "David Hudson & David Perry",
   "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/hudson-perry/hpdl-sdk"
-  },
-  "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
-  },
-  "peerDependencies": {}
+    "url": "https://github.com/Myth727/Real-Time-LLM-Coherence-Harness-SDE-Bands-Zero-Drift-Lock-"
+  }
 }

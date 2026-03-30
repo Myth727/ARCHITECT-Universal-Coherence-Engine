@@ -66,7 +66,7 @@ export function buildPipeInjection(state: PipeState): string {
     ? `\nB-Signals: ${state.bSignalCount} — sycophancy, hype, or off-task elaboration detected.`
     : '';
   const sigmaLine = state.adaptedSigma != null
-    ? `\nσ_adapted=${state.adaptedSigma.toFixed(5)} (live EWMA) | κ=0.444 (fixed)`
+    ? `\nσ_adapted=${state.adaptedSigma.toFixed(5)} (live EWMA) | damping=fixed`
     : '';
 
   return `\n\n[SYSTEM_INTERNAL — HUDSON & PERRY PIPE | Turn ${state.turn}]`

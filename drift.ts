@@ -86,7 +86,7 @@ export function driftLawFloor(n: number, gamma_h: number, epsilon = EPSILON): nu
   return sys + Math.abs(BETA_C * Math.sin(gamma_h * n * 0.01)) * 0.05;
 }
 
-// ── Zero-Drift Lock ─────────────────────────────────────────────
+// ── Stability Convergence ───────────────────────────────────────
 
 /**
  * Iterative convergence toward RESONANCE_ANCHOR.

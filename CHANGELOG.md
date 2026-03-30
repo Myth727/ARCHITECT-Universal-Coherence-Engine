@@ -3,6 +3,76 @@
 © 2026 Hudson & Perry Research
 𝕏 @RaccoonStampede (David Hudson) · 𝕏 @Prosperous727 (David Perry)
 
+## V1.5.21
+- LOCK_888 badge renamed from 🔒 LOCK_888 to 🔒 FULL STABILITY in header.
+- ZERO-DRIFT LOCK panel renamed to STABILITY CONVERGENCE. Hz unit removed from residual display.
+- Zero-Drift Display toggle removed from FEATURES tab — moved to ADVANCED tab as opt-in, default OFF (featZeroDrift now defaults false).
+- κ/ANCHOR MODIFIED header warning removed — these constants are Advanced-only, no header indicator needed.
+- Stability Convergence toggle added inside Advanced tab with explanatory note.
+- README title changed from Hudson & Perry's Drift Law — ARCHITECT to ARCHITECT — Real-Time AI Coherence Harness.
+- README SDK constants block simplified — KAPPA/RESONANCE_ANCHOR/ghost tax removed, replaced with neutral EPSILON/DAMPING descriptions.
+- README citation updated to neutral framing.
+
+---
+
+## V1.5.20
+- MessageBubble extracted as React.memo component above main component. Custom equality function: only re-renders when display text, drifted state, bookmark state, cdata reference, or attachments change. In sessions with 50+ turns, previous messages no longer re-render on every state change (typing, scoring, streaming). Key uses message index + display length for stable identity. Inline IIFE for isBookmarked removed — computed once per map iteration and passed as prop.
+
+---
+
+## V1.5.19
+- SDE params panel — removed κ=0.444 from visible label. Now reads: ω=2π/12 locked, α/β_p/σ tunable, damping constant fixed (see ⚗ ADVANCED).
+- Display tab — removed 623.81 Hz resonance framing. Now reads: dark-mode first design, optimized for extended reading sessions.
+- Hidden constants block labels neutralized — κ (Hudson Constant) → κ (damping), RESONANCE_ANCHOR 623.81 Hz → Stability Anchor. Neutral language throughout.
+- Standard UI now fully free of κ=0.444, 623.81 Hz, and Hudson Constant references. All such framing is Advanced tab only.
+
+---
+
+## V1.5.18
+- Hudson Constants (κ, RESONANCE_ANCHOR) moved out of FEATURES tab and into ADVANCED tab. No longer visible on the standard interface. Renamed to "Framework Constants" with neutral language.
+- ZERO-DRIFT LOCK panel label — removed Hz value from visible label. Shows "ZERO-DRIFT LOCK" only.
+- Adaptive sigma panel — κ=0.444 fixed (Hudson Constant) softened to "damping constant fixed (see Advanced tab)".
+- CUSTOM preset warning about κ/RESONANCE_ANCHOR updated — now points to Advanced tab instead of stating values.
+- Math tab — nudge note added pointing users to Advanced tab for experimental features.
+- Framework Constants block added inside Advanced tab with softened language: κ described as damping constant, 623.81 described as stability anchor convergence target. No pseudoscience framing in default UI.
+- README updated — clean separation of validated vs experimental. Apology note for SDK files in root.
+
+---
+
+## V1.5.17
+- Advanced Tab added to TUNE modal — gated experimental zone, requires explicit checkbox unlock. Contains CIR and Heston alternative SDE models, Custom Rails editor. Carries clear warning: features here are experimental or unvalidated.
+- CIR (Cox-Ingersoll-Ross) SDE model — dX = κ(θ−X)dt + σ√X dW. Mean-reverting, positive-valued. Three tunable params (κ, θ, σ). Available in Advanced Tab.
+- Heston stochastic volatility model — dV=κ(θ−V)dt+σ√V dW₁, dS/S=√V dW₂, correlation ρ. Five tunable params. Available in Advanced Tab.
+- Custom Rails — user-defined behavioral guidelines (plain language) injected into every system prompt alongside HPDL pipe directives. Toggleable on/off, persists across sessions. Available in Advanced Tab.
+- All Advanced Tab state (advancedUnlocked, userRailsEnabled, userCustomRails, sdeModel, CIR/Heston params) persisted to hpdl_config and restored on mount.
+- Guide rewritten — leads with what is confirmed and validated, frames Advanced tab as opt-in experimental zone.
+- README rewritten — artifact-first layout, clean separation of validated vs experimental features, apology note for SDK files being in root of main branch pending folder reorganization.
+- railsInj wired into system prompt assembly — Custom Rails text injected when enabled.
+- stale V1.5.12 version string in TUNE modal footer fixed to V1.5.17.
+
+---
+
+## V1.5.16
+- Q1: Model string updated from claude-sonnet-4-20250514 to claude-sonnet-4-6 (current).
+- Q2: hpdl_data save dep array completed — driftCount, turnCount, calmStreak, smoothedVar, kalmanState, scoreHistory, ragCache all added. Previously these could fail to persist if only they changed without coherenceData also changing (e.g. after rewind or deleteTurn).
+- Q3: activeMutePhrases wrapped in useMemo([customMutePhrases]) — was returning a new MUTE_PHRASES reference every render when no custom phrases set, silently invalidating sendMessage useCallback on every render.
+- Q4: apiKeyValid wrapped in useMemo([apiKey]).
+
+---
+
+## V1.5.15
+- Guide strings updated — Version 1.5.2 → 1.5.15 in GUIDE_CONTENT header (this was the visible version shown when user opens GUIDE modal).
+- FRAMEWORK_DOC validation status expanded — added confirmations for per-preset GARCH, epsilon, post-audit dual Kalman, React Context, full cfg threading, math tunables persistence, and Grok external validation note.
+- V1.5.0 ADDITIONS section → V1.5.3–V1.5.15 ADDITIONS — covers all changes through V1.5.15.
+- PART 8 expanded — renamed from V1.5.0 NEW FEATURES to V1.5.x ADDITIONS. New sections: MATH TAB TUNABLES, INDUSTRY PRESETS (full breakdown), REWIND, RESEARCH NOTES.
+- POST-AUDIT section updated to include CUSTOM threshold option.
+- Subtitle line V1.5.8 → V1.5.15 fixed (was visible in running app).
+
+---
+
+## V1.5.14
+- Q1: Model string updated — claude-sonnet-4-20250514 → claude-sonnet-4-6.
+
 ---
 
 ## V1.5.13

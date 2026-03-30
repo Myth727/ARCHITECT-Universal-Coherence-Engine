@@ -1,6 +1,6 @@
 # Hudson & Perry's Drift Law — Framework Document
 
-**Version 3.3 | V1.5.8 | © 2026 Hudson & Perry Research**
+**Version 3.6 | V1.5.21 | © 2026 Hudson & Perry Research**
 David Hudson (@RaccoonStampede) & David Perry (@Prosperous727)
 
 ---
@@ -223,7 +223,7 @@ The dual Kalman step applies post-audit score as a second observation when post-
 - Per-preset GARCH tuning ✓ (V1.5.3)
 - Epsilon parameterization ✓ (V1.5.3)
 - Post-audit dual Kalman ✓ (V1.5.2)
-- Context architecture ✓ (V1.5.8)
+- Context architecture ✓ (V1.5.21)
 
 **Requires validation:**
 - C-score vs. human judgment correlation
@@ -233,7 +233,7 @@ The dual Kalman step applies post-audit score as a second observation when post-
 
 ---
 
-## V1.5.3–V1.5.8 Additions
+## V1.5.3–V1.5.21 Additions
 
 **V1.5.3**
 - GARCH parameters now per-preset — `updateSmoothedVariance` takes cfg param
@@ -265,7 +265,7 @@ The dual Kalman step applies post-audit score as a second observation when post-
 - Feature toggle OFF row background fixed (was near-black in light theme)
 - JSX header stripped — patch history moved to CHANGELOG.md
 
-**V1.5.8**
+**V1.5.21**
 - React Context migration — TuneCtx (30+ tune params) and SessionCtx (session/modal state)
 - Modal call sites reduced to zero-prop `<TuneModal />` etc.
 - Context values memoized (useMemo) — modals only re-render when their slice of state changes
