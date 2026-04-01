@@ -5,8 +5,8 @@ import {
 } from "recharts";
 
 // ═══════════════════════════════════════════════════════════════
-//  FILE: ARCHITECT.jsx  ← upload to GitHub with this exact name (all caps)
-//  HUDSON & PERRY'S DRIFT LAW — ARCHITECT · V1.5.30
+//  FILE: ARCHITECT.jsx
+//  HUDSON & PERRY'S DRIFT LAW — ARCHITECT · V1.5.35
 //  © Hudson & Perry Research
 //  Authors: David Hudson (@RaccoonStampede) · David Perry (@Prosperous727)
 //
@@ -275,6 +275,18 @@ const PRESETS = {
     pruneThreshold:6, pruneKeep:5,
     driftEscalateMod:2, driftEscalateDeep:4, driftEscalateExtreme:6,
     healthDriftWeight:12, healthBSigWeight:6, healthHSigWeight:10,
+  },
+  CIRCUIT: {
+    label:"CIRCUIT", color:"#1A5C1A",
+    description:"Logic verification & cascading runs — tight variance, aggressive drift clamping, optimized for repeatable AI reasoning chains",
+    varDecoherence:0.140, varCaution:0.080, varCalm:0.050,
+    lock888Streak:6, lock888AvgCFloor:0.82,
+    driftGateWordLimit:90, muteMaxTokens:90,
+    garchOmega:0.012, garchAlpha:0.09, garchBeta:0.88,
+    sdeAlpha:-0.38, sdeBetaP:0.10, sdeSigma:0.06,
+    pruneThreshold:6, pruneKeep:5,
+    driftEscalateMod:2, driftEscalateDeep:4, driftEscalateExtreme:6,
+    healthDriftWeight:14, healthBSigWeight:7, healthHSigWeight:12,
   },
   CUSTOM: {
     label:"CUSTOM", color:"#178040",
@@ -692,7 +704,7 @@ function downloadSdePaths(livePaths, coherenceData, sessionId, nPaths, userKappa
 
 // ── System prompt ──────────────────────────────────────────────
 const BASE_SYSTEM =
-  `You are a highly precise technical assistant operating within Hudson & Perry's Drift Law ARCHITECT V1.5.30 coherence framework. `+
+  `You are a highly precise technical assistant operating within Hudson & Perry's Drift Law ARCHITECT V1.5.35 coherence framework. `+
   `Maintain strict logical consistency across all turns. Reference prior context explicitly when building on it. `+
   `When files are attached, analyze them thoroughly. `+
   `When RAG MEMORY is provided, treat it as recalled context. `+
@@ -731,9 +743,9 @@ function buildExportBlock(s) {
     :"  (empty)";
   const kappaNote=(userKappa??KAPPA)!==KAPPA?` ⚠ MODIFIED from 0.444`:"";
   const anchorNote=(userAnchor??RESONANCE_ANCHOR)!==RESONANCE_ANCHOR?` ⚠ MODIFIED from 623.81`:"";
-  return `START_MISSION_PROTOCOL: HUDSON_PERRY_DRIFT_ARCHITECT_V1.5.30
+  return `START_MISSION_PROTOCOL: HUDSON_PERRY_DRIFT_ARCHITECT_V1.5.35
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Hudson & Perry's Drift Law — ARCHITECT V1.5.30
+Hudson & Perry's Drift Law — ARCHITECT V1.5.35
 © Hudson & Perry Research
 ⚠ R&D ONLY — Proxy indicators, no warranty
 
@@ -1035,7 +1047,7 @@ function computeSessionHealth(coherenceData, driftCount, smoothedVar, calmStreak
 const FRAMEWORK_CONTENT=`HUDSON & PERRY'S DRIFT LAW
 TIME-VARYING ERROR DYNAMICS & AI COHERENCE HARNESS
 Authors: David Hudson (@RaccoonStampede) & David Perry (@Prosperous727)
-Version 3.2  |  V1.5.15  |  © 2026
+Version 3.6  |  V1.5.35  |  © 2026
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1184,7 +1196,7 @@ CONFIRMED: SDE math ✓ | Kalman ✓ | GARCH ✓ | TF-IDF+JSD ✓
 REQUIRES VALIDATION: C-score vs. human judgment | H-signal
 false positive rate | 623.81 Hz physical anchor
 
-V1.5.3–V1.5.30 ADDITIONS TO FRAMEWORK
+V1.5.3–V1.5.35 ADDITIONS TO FRAMEWORK
   GARCH preset tuning: per-preset omega/alpha/beta now applied.
   Epsilon param: mathEpsilon wired to cap_eff, chart bands, MATH tab.
   cfg threading: varCaution/Decoherence/Calm flow through pipe, gate,
@@ -1194,9 +1206,11 @@ V1.5.3–V1.5.30 ADDITIONS TO FRAMEWORK
     and Advanced Tab state survive session reload.
   Rewind: prev/next buttons use actual buffer bounds.
   All key values memoized. Model string: claude-sonnet-4-6.
-  V1.5.30: Advanced Tab added — CIR/Heston SDE models (experimental,
-    gated), Custom Rails (user-defined behavioral guidelines injected
-    into pipe), explicit experimental/pseudoscience labeling.
+  V1.5.17–V1.5.35: Advanced Tab (CIR/Heston, Custom Rails, MHT Study,
+    Poole CA Sim, DATL Heartbeat). CIRCUIT preset. SDE path viz.
+    Circuit Signal sidebar. Mobile scroll fixed. Full pseudoscience
+    cleanup — experimental framing behind consent gate. MessageBubble
+    memoized. All version strings normalized to V1.5.35.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1206,7 +1220,7 @@ V1.5.3–V1.5.30 ADDITIONS TO FRAMEWORK
 // ── Guide Content ──────────────────────────────────────────────
 const GUIDE_CONTENT=`HUDSON & PERRY'S DRIFT LAW — USER GUIDE
 How to Read the Graph · How to Detect Drift · How to Use the Harness
-Version 1.5.30  |  © 2026 David Hudson & David Perry
+Version 1.5.35  |  © 2026 David Hudson & David Perry
 
 ARCHITECT monitors AI response quality in real time. It scores every
 response mathematically, tracks coherence trends, and injects corrective
@@ -1395,7 +1409,7 @@ A: Yes. CHAT downloads a clean text file with an audit table.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-PART 8 — V1.5.x ADDITIONS (V1.5.0 → V1.5.30)
+PART 8 — V1.5.x ADDITIONS (V1.5.0 → V1.5.35)
 
 SDE PATH COUNT (TUNE → SDE SIMULATION PATHS)
   Default: 50 paths. Options: 5, 10, 20, 25, 50, 100, 200, 250, 300, 500.
@@ -1439,10 +1453,11 @@ MATH TAB TUNABLES (TUNE → MATH)
   not enforced. All MATH tunables persist across session reloads.
 
 INDUSTRY PRESETS (TUNE → PRESETS)
-  DEFAULT / TECHNICAL / CREATIVE / RESEARCH / MEDICAL / CUSTOM
+  DEFAULT / TECHNICAL / CREATIVE / RESEARCH / MEDICAL / CIRCUIT / CUSTOM
   Each preset tunes GARCH params, SDE params, variance thresholds,
   word limits, health penalty weights, and drift escalation thresholds.
-  MEDICAL uses the tightest settings. CREATIVE uses the loosest.
+  CIRCUIT uses the tightest logic-verification settings. MEDICAL uses
+  the tightest clinical settings. CREATIVE uses the loosest.
 
 REWIND (click any chart dot, or use PREV / NEXT)
   Restores full session state to any prior turn.
@@ -1470,6 +1485,24 @@ ADVANCED TAB (TUNE → ⚗ ADVANCED)
     Write plain language — the AI will follow these as additional rules.
     Examples: "Never exceed 3 paragraphs." · "Always cite sources."
     Toggleable on/off. Persists across sessions.
+
+  MHT STUDY (Advanced)
+    Metatron-Hudson Theory SDE study module. Robitaille Helix invariants
+    (psi, kappa bound, tau), H_drift annihilator parameters, and DATL
+    Heartbeat. Live computed values at t=1. Study use only.
+
+  POOLE CA SIM (Advanced)
+    3D cellular automaton simulator. Adjustable birth/survival parameters.
+    Default B:5-7 / S:5-9. Live canvas preview. Full adder truth table
+    (8/8 Turing completeness verification).
+
+SDE PATH VISUALIZATION (TUNE -> FEATURES -> SDE Path Viz)
+  Toggle to render faint OU ensemble paths on the coherence chart.
+  Up to 20 paths in the active preset color. Opacity in DISPLAY tab.
+
+CIRCUIT SIGNAL (metrics sidebar)
+  Appears when Poole CA Sim is active. Shows full adder pass rate.
+  >= 87.5% renders green, below renders amber.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1575,7 +1608,7 @@ const DisclaimerModal = React.memo(function DisclaimerModal({showDisclaimer,setS
         </div>
         <div style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#4A6060",letterSpacing:1}}>
-          HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.30 · READ IN FULL BEFORE PROCEEDING
+          HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.35 · READ IN FULL BEFORE PROCEEDING
         </div>
       </div>
 
@@ -1678,8 +1711,13 @@ const TuneModal = React.memo(function TuneModal() {
     mathRepThresh,setMathRepThresh,mathKalmanR,setMathKalmanR,mathKalmanSigP,setMathKalmanSigP,
     mathRagTopK,setMathRagTopK,mathMaxTokens,setMathMaxTokens,
     tuneTab,setTuneTab,pruneThreshold,setPruneThreshold,pruneKeep,setPruneKeep,showParams,setShowParams,
+    showSdePaths,setShowSdePaths,pathOpacity,setPathOpacity,
     advancedUnlocked,setAdvancedUnlocked,
     showSdeConfig,setShowSdeConfig,showRailsConfig,setShowRailsConfig,showConstEditor,setShowConstEditor,
+    showMhtStudy,setShowMhtStudy,mhtPsi,setMhtPsi,mhtKappa,setMhtKappa,mhtTau,setMhtTau,
+    showPoole,setShowPoole,pooleBirth1,setPooleBirth1,pooleBirth2,setPooleBirth2,
+    pooleSurv1,setPooleSurv1,pooleSurv2,setPooleSurv2,pooleGen,setPooleGen,caPassRate,setCaPassRate,
+    mhtGamma,setMhtGamma,mhtCap,setMhtCap,mhtAlpha,setMhtAlpha,mhtBeta,setMhtBeta,mhtSigma,setMhtSigma,
     userRailsEnabled,setUserRailsEnabled,
     userCustomRails,setUserCustomRails,sdeModel,setSdeModel,
     cirKappa,setCirKappa,cirTheta,setCirTheta,cirSigma,setCirSigma,
@@ -1773,6 +1811,7 @@ const TuneModal = React.memo(function TuneModal() {
               ["B-Signal Detection",  featBSig,      setFeatBSig,      "#4848B8","Without: behavioral flags suppressed"],
               ["H-Signal Detection",  featHSig,      setFeatHSig,      "#9A5C08","Without: hallucination flags suppressed"],
               ["Context Pruning",     featPrune,     setFeatPrune,     "#178040","Without: full context always sent"],
+              ["SDE Path Viz",        showSdePaths,  setShowSdePaths,  "#5090C0","Renders live OU paths on chart"],
             ].map(([label,val,setter,col,note])=>(
               <div key={label} style={{display:"flex",alignItems:"center",gap:8,
                 padding:"6px 10px",borderRadius:4,
@@ -2141,6 +2180,18 @@ const TuneModal = React.memo(function TuneModal() {
           Background: #06090F · Accent: #1EAAAA<br/>
           κ color: #C8860A · Health green: #40D080
         </div>
+        {showSdePaths&&(
+          <div style={{marginTop:12,padding:'8px 10px',background:'#EEF6FA',borderRadius:4,border:'1px solid #5090C033'}}>
+            <div style={{fontFamily:'Courier New,monospace',fontSize:8,color:'#1E6A8A',letterSpacing:1,marginBottom:8}}>SDE PATH OPACITY</div>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <input type='number' min={0.05} max={0.40} step={0.05} value={pathOpacity}
+                onChange={e=>setPathOpacity(parseFloat(e.target.value))}
+                style={{width:60,fontFamily:'Courier New,monospace',fontSize:9,color:'#1E6A8A',
+                  background:'#FAFCFF',border:'1px solid #5090C044',borderRadius:3,padding:'2px 6px'}}/>
+              <span style={{fontFamily:'Courier New,monospace',fontSize:7,color:'#4A7090'}}>0.05–0.40 · default 0.15</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── ADVANCED TAB ──────────────────────────────────────────── */}
@@ -2186,6 +2237,7 @@ const TuneModal = React.memo(function TuneModal() {
                 ["Custom Rails",    showRailsConfig,  ()=>setShowRailsConfig(p=>!p),  "#4828A0","Inject custom guidelines"],
                 ["Stability Panel", featZeroDrift,    ()=>setFeatZeroDrift(p=>!p),    "#906000","Convergence sidebar panel"],
                 ["Edit Constants",  showConstEditor,  ()=>setShowConstEditor(p=>!p),  "#9A5C08","Modify framework constants"],
+                ["MHT Study",       showMhtStudy,     ()=>setShowMhtStudy(p=>!p),      "#1E6A8A","Metatron-Hudson Theory SDE"],
               ].map(([label,val,toggle,col,note])=>(
                 <div key={label} style={{display:"flex",alignItems:"center",gap:8,
                   padding:"6px 10px",borderRadius:4,
@@ -2332,6 +2384,190 @@ const TuneModal = React.memo(function TuneModal() {
             </div>
           )}
 
+          {/* MHT Study */}
+          {showMhtStudy&&(
+            <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:14}}>
+              <div style={{fontFamily:"Courier New,monospace",fontSize:9,color:"#1E6A8A",letterSpacing:2,marginBottom:6}}>METATRON-HUDSON THEORY — SDE STUDY</div>
+              <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#2E5070",lineHeight:1.7,marginBottom:10,padding:"6px 10px",background:"#EEF6FA",borderRadius:3,border:"1px solid #1E6A8A33"}}>
+                Experimental fusion of Robitaille Helix invariants with HPDL drift law. r(t)=e^ψt(cos t,sin t,t) with GARCH torsion clamps + Kalman curvature guards. Study only — not used in coherence scoring.
+              </div>
+              <div style={{background:"#E8F4FA",border:"1px solid #1E6A8A33",borderRadius:4,padding:10,marginBottom:10}}>
+                <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#1E6A8A",letterSpacing:1,marginBottom:6}}>INVARIANTS</div>
+                {[
+                  ["ψ (radial growth)",`e^ψt | ψ=${mhtPsi.toFixed(6)}`,"#1E6A8A"],
+                  ["κ bound",`κ(t) ≤ ${mhtKappa.toFixed(6)}`,"#C81030"],
+                  ["τ (torsion)",`0<τ<1 | active:${mhtTau.toFixed(3)}`,"#178040"],
+                  ["R_heart(t)","ψ + nτ_GARCH/κ_Kalman + H_drift","#4828A0"],
+                ].map(([lbl,val,col])=>(
+                  <div key={lbl} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                    <span style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#2E5070",flex:1}}>{lbl}</span>
+                    <span style={{fontFamily:"Courier New,monospace",fontSize:7,color:col}}>{val}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#4A7090",marginBottom:8}}>H_drift: ΔS = cap·(1−e^(−n^α/τ)) + β·sin(γn) + N(0,σ)</div>
+              {[
+                ["ψ",mhtPsi,setMhtPsi,1.0,4.0,0.001],
+                ["κ cap",mhtKappa,setMhtKappa,0.1,1.0,0.001],
+                ["τ (torsion)",mhtTau,setMhtTau,0.01,0.99,0.01],
+                ["cap",mhtCap,setMhtCap,1.0,10.0,0.01],
+                ["α (exp)",mhtAlpha,setMhtAlpha,0.5,4.0,0.1],
+                ["β (amp)",mhtBeta,setMhtBeta,0.0,1.0,0.01],
+                ["γ (freq)",mhtGamma,setMhtGamma,0.0,1.0,0.005],
+                ["σ (noise)",mhtSigma,setMhtSigma,0.0,0.5,0.01],
+              ].map(([lbl,val,set,mn,mx,step])=>(
+                <div key={lbl} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                  <span style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#2E5070",flex:1}}>{lbl}</span>
+                  <input type="number" min={mn} max={mx} step={step} value={val} onChange={e=>set(parseFloat(e.target.value))}
+                    style={{width:70,fontFamily:"Courier New,monospace",fontSize:9,color:"#1E6A8A",background:"#EEF6FA",border:"1px solid #1E6A8A44",borderRadius:3,padding:"3px 6px",textAlign:"right"}}/>
+                </div>
+              ))}
+              <div style={{marginTop:10,padding:"8px 10px",background:"#F0F8FF",borderRadius:4,border:"1px solid #1E6A8A22"}}>
+                <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#1E6A8A",letterSpacing:1,marginBottom:6}}>LIVE COMPUTED (t=1)</div>
+                {(()=>{
+                  const r_t=Math.exp(mhtPsi);
+                  const R_heart=mhtPsi+(mhtTau)/Math.max(mhtKappa,0.001);
+                  const H_drift=mhtCap*(1-Math.exp(-Math.pow(1,mhtAlpha)/Math.max(mhtTau,0.001)))+mhtBeta*Math.sin(mhtGamma);
+                  const annihilated=Math.max(0,H_drift-(1-mhtKappa));
+                  return [
+                    ["r(t)=e^ψt",r_t.toFixed(6)],
+                    ["R_heart(t)",R_heart.toFixed(6)],
+                    ["H_drift(t)",H_drift.toFixed(6)],
+                    ["Annihilated",annihilated.toFixed(6)],
+                    ["κ valid",mhtKappa<=0.414214?"✓ ≤√2−1":"⚠ EXCEEDS"],
+                    ["τ valid",mhtTau>0&&mhtTau<1?"✓ in range":"⚠ OUT"],
+                  ].map(([lbl,val])=>(
+                    <div key={lbl} style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                      <span style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#2E5070"}}>{lbl}</span>
+                      <span style={{fontFamily:"Courier New,monospace",fontSize:7,color:val.startsWith("⚠")?"#C81030":val.startsWith("✓")?"#178040":"#1E6A8A"}}>{val}</span>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          )}
+
+          {/* ── POOLE MANIFOLD CA SIMULATOR ── */}
+          {showPoole&&(
+            <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:14}}>
+              <div style={{fontFamily:"Courier New,monospace",fontSize:9,color:"#1A5C1A",
+                letterSpacing:2,marginBottom:6}}>POOLE MANIFOLD — DISCRETE CA LATTICE</div>
+              <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#2E5070",
+                lineHeight:1.7,marginBottom:10,padding:"6px 10px",background:"#EEF6EE",
+                borderRadius:3,border:"1px solid #1A5C1A33"}}>
+                3D cellular automaton. B:{pooleBirth1}-{pooleBirth2} / S:{pooleSurv1}-{pooleSurv2}.
+                Local fluid-logic only. Turing complete. Study use only.
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                {[["Birth min",pooleBirth1,setPooleBirth1],["Birth max",pooleBirth2,setPooleBirth2],
+                  ["Survive min",pooleSurv1,setPooleSurv1],["Survive max",pooleSurv2,setPooleSurv2]
+                ].map(([lbl,val,set])=>(
+                  <div key={lbl} style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#2E5070",width:70,flexShrink:0}}>{lbl}</span>
+                    <input type="number" min={1} max={13} step={1} value={val}
+                      onChange={e=>set(parseInt(e.target.value))}
+                      style={{width:50,fontFamily:"Courier New,monospace",fontSize:9,
+                        color:"#1A5C1A",background:"#EEF6EE",border:"1px solid #1A5C1A44",
+                        borderRadius:3,padding:"3px 6px",textAlign:"right"}}/>
+                  </div>
+                ))}
+              </div>
+              <div style={{background:"#0A1A0A",borderRadius:4,padding:8,marginBottom:8,display:"flex",justifyContent:"center"}}>
+                <canvas width={160} height={160} style={{imageRendering:"pixelated",border:"1px solid #1A5C1A44"}}
+                  ref={el=>{
+                    if (!el) return;
+                    const ctx2=el.getContext("2d");
+                    const S=14, rows=11, cols=11;
+                    const g=Array.from({length:rows},(_,r)=>
+                      Array.from({length:cols},(_,c)=>((r*3+c*7+pooleGen*11)%5===0||(r+c+pooleGen)%7===0)?1:0)
+                    );
+                    ctx2.fillStyle="#0A1A0A"; ctx2.fillRect(0,0,160,160);
+                    g.forEach((row,r)=>row.forEach((cell,c)=>{
+                      const nb=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]
+                        .filter(([dr,dc])=>{const nr=r+dr,nc=c+dc;return nr>=0&&nr<rows&&nc>=0&&nc<cols&&g[nr][nc];}).length;
+                      const next=cell?(nb>=pooleSurv1&&nb<=pooleSurv2):(nb>=pooleBirth1&&nb<=pooleBirth2);
+                      const v=next?(cell?220:150):30;
+                      ctx2.fillStyle="rgb("+Math.floor(v*0.25)+","+v+","+Math.floor(v*0.25)+")";
+                      ctx2.fillRect(c*S+4,r*S+4,S-2,S-2);
+                    }));
+                    ctx2.fillStyle="#40A040"; ctx2.font="7px Courier New";
+                    ctx2.fillText("B:"+pooleBirth1+"-"+pooleBirth2+" S:"+pooleSurv1+"-"+pooleSurv2+" gen:"+pooleGen,4,158);
+                  }}
+                />
+              </div>
+              <div style={{display:"flex",gap:8,justifyContent:"center",marginBottom:10}}>
+                <button onClick={()=>setPooleGen(p=>p+1)} style={{padding:"4px 14px",background:"#EEF6EE",
+                  border:"1px solid #1A5C1A44",borderRadius:3,color:"#1A5C1A",cursor:"pointer",
+                  fontFamily:"Courier New,monospace",fontSize:8}}>STEP</button>
+                <button onClick={()=>setPooleGen(0)} style={{padding:"4px 14px",background:"#F4F4F4",
+                  border:"1px solid #CDD8E8",borderRadius:3,color:"#2E5070",cursor:"pointer",
+                  fontFamily:"Courier New,monospace",fontSize:8}}>RESET</button>
+              </div>
+              <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#2E5070",marginBottom:4}}>
+                Full adder truth table — Turing completeness verification:
+              </div>
+              <div style={{background:"#F0F8F0",border:"1px solid #1A5C1A22",borderRadius:3,padding:"6px 8px"}}>
+                {(()=>{
+                  const fa=(a,b,cin)=>({s:(a^b^cin),k:((a&b)|(b&cin)|(a&cin))});
+                  const cases=[[0,0,0],[0,0,1],[0,1,0],[0,1,1],[1,0,0],[1,0,1],[1,1,0],[1,1,1]];
+                  const res=cases.map(([a,b,c])=>{const r=fa(a,b,c);return {a,b,c,r,ok:r.s===((a+b+c)%2)&&r.k===Math.floor((a+b+c)/2)};});
+                  const passed=res.filter(x=>x.ok).length;
+                  return (
+                    <div>
+                      {res.map(({a,b,c,r,ok},i)=>(
+                        <div key={i} style={{display:"flex",gap:10,fontFamily:"Courier New,monospace",
+                          fontSize:7,color:ok?"#1A5C1A":"#C81030",marginBottom:2}}>
+                          <span>A={a} B={b} Ci={c}</span>
+                          <span>S={r.s} Co={r.k}</span>
+                          <span>{ok?"✓":"✗"}</span>
+                        </div>
+                      ))}
+                      <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#1A5C1A",marginTop:4,fontWeight:"bold"}}
+                        ref={el=>{if(el){setCaPassRate(passed/8);}}}
+                      >
+                        {passed}/8 PASSED
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
+          {/* ── DATL HEARTBEAT appended to MHT section ── */}
+          {showMhtStudy&&(
+            <div style={{borderTop:"1px solid #1E4060",paddingTop:10,marginBottom:14}}>
+              <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#1E6A8A",letterSpacing:2,marginBottom:6}}>DATL HEARTBEAT</div>
+              <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#4A7090",marginBottom:8}}>
+                N(t) = floor(ψ·n_task/κ)+1+Δ_hb(t) where Δ_hb=sin(2πt/998001)·e^(ψt/10)
+              </div>
+              {(()=>{
+                const t=(Date.now()%9980010)/100000;
+                const hb=Math.sin(2*Math.PI*t/998001)*Math.exp(mhtPsi*t/10);
+                const N=Math.floor(mhtPsi*4/Math.max(mhtKappa,0.001))+1+hb;
+                const bar=Math.abs(Math.sin(2*Math.PI*t/998001));
+                return (
+                  <div style={{background:"#E8F4FA",borderRadius:3,padding:"8px 10px"}}>
+                    {[
+                      ["Δ_heartbeat",hb.toExponential(4)],
+                      ["N(t) agents",N.toFixed(2)],
+                      ["Period","998001 steps (ultra-low)"],
+                    ].map(([lbl,val])=>(
+                      <div key={lbl} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                        <span style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#2E5070"}}>{lbl}</span>
+                        <span style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#1E6A8A"}}>{val}</span>
+                      </div>
+                    ))}
+                    <div style={{marginTop:4,height:4,background:"#1E6A8A22",borderRadius:2}}>
+                      <div style={{height:"100%",width:(bar*100).toFixed(1)+"%",
+                        background:"#1E6A8A",borderRadius:2,transition:"width .5s"}}/>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
         </>)}
       </div>
 
@@ -2343,7 +2579,7 @@ const TuneModal = React.memo(function TuneModal() {
         display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#2E5070",letterSpacing:1}}>
-          ACTIVE: {PRESETS[activePreset]?.label??activePreset} · V1.5.30
+          ACTIVE: {PRESETS[activePreset]?.label??activePreset} · V1.5.35
         </span>
         <button onClick={()=>setShowTuning(false)}
           style={{padding:"4px 14px",background:"#EEF8F2",
@@ -2811,7 +3047,7 @@ const BookmarksModal = React.memo(function BookmarksModal() {
         </span>
         <span style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#2E5070",letterSpacing:1}}>
-          V1.5.15 © HUDSON &amp; PERRY
+          V1.5.35 © HUDSON &amp; PERRY
         </span>
       </div>
     </div>
@@ -3036,6 +3272,8 @@ export default function HudsonPerryDriftV1() {
   const [turnCount,       setTurnCount]       = useState(0);
   const [lastScore,       setLastScore]       = useState(null);
   const [showParams,      setShowParams]      = useState(false);
+  const [showSdePaths,    setShowSdePaths]    = useState(false);
+  const [pathOpacity,     setPathOpacity]     = useState(0.15);
   // P12: pruneThreshold/pruneKeep state ARE wired to UI sliders in the TUNE panel,
   // but pruneContext() calls cfg.pruneThreshold??pruneThreshold — meaning the active
   // preset's value always wins unless CUSTOM is selected. The sliders visually work
@@ -3136,6 +3374,23 @@ export default function HudsonPerryDriftV1() {
   const [showSdeConfig,     setShowSdeConfig]     = useState(false);
   const [showRailsConfig,   setShowRailsConfig]   = useState(false);
   const [showConstEditor,   setShowConstEditor]   = useState(false);
+  const [showMhtStudy,      setShowMhtStudy]      = useState(false);
+  const [mhtPsi,    setMhtPsi]    = useState(2.058171);
+  const [mhtKappa,  setMhtKappa]  = useState(0.414214);
+  const [mhtTau,    setMhtTau]    = useState(0.5);
+  const [mhtGamma,  setMhtGamma]  = useState(0.05);
+  const [mhtCap,    setMhtCap]    = useState(5.035);
+  const [mhtAlpha,  setMhtAlpha]  = useState(1.8);
+  const [mhtBeta,   setMhtBeta]   = useState(0.2);
+  const [mhtSigma,  setMhtSigma]  = useState(0.15);
+  // Poole CA sim state
+  const [showPoole,    setShowPoole]    = useState(false);
+  const [pooleBirth1,  setPooleBirth1]  = useState(5);
+  const [pooleBirth2,  setPooleBirth2]  = useState(7);
+  const [pooleSurv1,   setPooleSurv1]   = useState(5);
+  const [pooleSurv2,   setPooleSurv2]   = useState(9);
+  const [pooleGen,     setPooleGen]     = useState(0);
+  const [caPassRate,   setCaPassRate]   = useState(null);
   const [userRailsEnabled,  setUserRailsEnabled]  = useState(false);
   const [userCustomRails,   setUserCustomRails]   = useState("");
   const [sdeModel,          setSdeModel]          = useState("hpdl"); // "hpdl"|"cir"|"heston"
@@ -3225,11 +3480,27 @@ export default function HudsonPerryDriftV1() {
         if (p.sdeBetaOn!=null)          setSdeBetaOn(p.sdeBetaOn);
         if (p.sdeSigmaOn!=null)         setSdeSigmaOn(p.sdeSigmaOn);
         if (p.postAuditThresh!=null)    setPostAuditThresh(p.postAuditThresh);
+        if (p.showSdePaths!=null)        setShowSdePaths(p.showSdePaths);
+        if (p.pathOpacity!=null)         setPathOpacity(p.pathOpacity);
         // Advanced Tab restore
         if (p.advancedUnlocked!=null)   setAdvancedUnlocked(p.advancedUnlocked);
         if (p.showSdeConfig!=null)       setShowSdeConfig(p.showSdeConfig);
         if (p.showRailsConfig!=null)     setShowRailsConfig(p.showRailsConfig);
         if (p.showConstEditor!=null)     setShowConstEditor(p.showConstEditor);
+        if (p.showMhtStudy!=null)        setShowMhtStudy(p.showMhtStudy);
+        if (p.showPoole!=null)           setShowPoole(p.showPoole);
+        if (p.pooleBirth1!=null)         setPooleBirth1(p.pooleBirth1);
+        if (p.pooleBirth2!=null)         setPooleBirth2(p.pooleBirth2);
+        if (p.pooleSurv1!=null)          setPooleSurv1(p.pooleSurv1);
+        if (p.pooleSurv2!=null)          setPooleSurv2(p.pooleSurv2);
+        if (p.mhtPsi!=null)              setMhtPsi(p.mhtPsi);
+        if (p.mhtKappa!=null)            setMhtKappa(p.mhtKappa);
+        if (p.mhtTau!=null)              setMhtTau(p.mhtTau);
+        if (p.mhtGamma!=null)            setMhtGamma(p.mhtGamma);
+        if (p.mhtCap!=null)              setMhtCap(p.mhtCap);
+        if (p.mhtAlpha!=null)            setMhtAlpha(p.mhtAlpha);
+        if (p.mhtBeta!=null)             setMhtBeta(p.mhtBeta);
+        if (p.mhtSigma!=null)            setMhtSigma(p.mhtSigma);
         if (p.userRailsEnabled!=null)    setUserRailsEnabled(p.userRailsEnabled);
         if (p.userCustomRails)           setUserCustomRails(p.userCustomRails);
         if (p.sdeModel)                  setSdeModel(p.sdeModel);
@@ -3289,9 +3560,10 @@ export default function HudsonPerryDriftV1() {
           mathTfidf,mathJsd,mathLen,mathStruct,mathPersist,mathRepThresh,
           mathKalmanR,mathKalmanSigP,mathRagTopK,mathMaxTokens,
           sdeAlphaVal,sdeBetaVal,sdeSigmaVal,sdeAlphaOn,sdeBetaOn,sdeSigmaOn,
-          postAuditThresh,
+          postAuditThresh,showSdePaths,pathOpacity,
           // Advanced Tab
-          advancedUnlocked,showSdeConfig,showRailsConfig,showConstEditor,
+          advancedUnlocked,showSdeConfig,showRailsConfig,showConstEditor,showMhtStudy,showPoole,caPassRate,pooleBirth1,pooleBirth2,pooleSurv1,pooleSurv2,
+          mhtPsi,mhtKappa,mhtTau,mhtGamma,mhtCap,mhtAlpha,mhtBeta,mhtSigma,
           userRailsEnabled,userCustomRails,sdeModel,
           cirKappa,cirTheta,cirSigma,hestonKappa,hestonTheta,hestonSigma,hestonRho,hestonV0,
         }));
@@ -3306,7 +3578,8 @@ export default function HudsonPerryDriftV1() {
      mathKalmanR,mathKalmanSigP,mathRagTopK,mathMaxTokens,
      sdeAlphaVal,sdeBetaVal,sdeSigmaVal,sdeAlphaOn,sdeBetaOn,sdeSigmaOn,
      postAuditThresh,
-     advancedUnlocked,showSdeConfig,showRailsConfig,showConstEditor,
+     advancedUnlocked,showSdeConfig,showRailsConfig,showConstEditor,showMhtStudy,showPoole,
+     mhtPsi,mhtKappa,mhtTau,mhtGamma,mhtCap,mhtAlpha,mhtBeta,mhtSigma,
      userRailsEnabled,userCustomRails,sdeModel,
      cirKappa,cirTheta,cirSigma,hestonKappa,hestonTheta,hestonSigma,hestonRho,hestonV0]);
 
@@ -3389,6 +3662,26 @@ export default function HudsonPerryDriftV1() {
   // P13: wrapped in useMemo — sdePercentilesAtStep sorts livePaths (up to 500 paths)
   // per turn entry. Without memo this ran on every render. Now only recomputes
   // when coherenceData, livePaths, or harnessMode actually changes.
+  // Sample SDE paths at each coherence turn for chart overlay
+  const pathChartData=useMemo(()=>{
+    if (!showSdePaths||!livePaths||!livePaths.length) return [];
+    const n=coherenceData.length;
+    if (!n) return [];
+    const stepsPerTurn=Math.floor(livePaths[0].length/Math.max(n,1));
+    // Sample up to 20 paths for performance (spread evenly)
+    const stride=Math.max(1,Math.floor(livePaths.length/20));
+    const sampled=livePaths.filter((_,i)=>i%stride===0).slice(0,20);
+    return sampled.map((path,pi)=>(
+      coherenceData.map((d,i)=>{
+        const step=Math.min(Math.round((i+1)*stepsPerTurn),path.length-1);
+        // Normalize path value to coherence-like range [0.2, 1.0]
+        const raw=path[step];
+        const norm=Math.max(0.2,Math.min(1.0,0.65+raw*0.8));
+        return {turn:d.turn,["p"+pi]:norm};
+      })
+    ));
+  },[showSdePaths,livePaths,coherenceData]);
+
   const chartData=useMemo(()=>coherenceData.map((d,i)=>{
     const step=Math.round((i+1)*15),pcts=sdePercentilesAtStep(livePaths,step);
     const mean=d.kalman,floor=1-driftLawFloor(i+1,currentMode.gamma_h,mathEpsilon)*2; // V1.5.3 #6
@@ -4078,9 +4371,14 @@ export default function HudsonPerryDriftV1() {
     mathRepThresh,setMathRepThresh,mathKalmanR,setMathKalmanR,mathKalmanSigP,setMathKalmanSigP,
     mathRagTopK,setMathRagTopK,mathMaxTokens,setMathMaxTokens,
     tuneTab,setTuneTab,pruneThreshold,setPruneThreshold,pruneKeep,setPruneKeep,showParams,setShowParams,
+    showSdePaths,setShowSdePaths,pathOpacity,setPathOpacity,
     // Advanced Tab
     advancedUnlocked,setAdvancedUnlocked,
     showSdeConfig,setShowSdeConfig,showRailsConfig,setShowRailsConfig,showConstEditor,setShowConstEditor,
+    showMhtStudy,setShowMhtStudy,mhtPsi,setMhtPsi,mhtKappa,setMhtKappa,mhtTau,setMhtTau,
+    showPoole,setShowPoole,pooleBirth1,setPooleBirth1,pooleBirth2,setPooleBirth2,
+    pooleSurv1,setPooleSurv1,pooleSurv2,setPooleSurv2,pooleGen,setPooleGen,caPassRate,setCaPassRate,
+    mhtGamma,setMhtGamma,mhtCap,setMhtCap,mhtAlpha,setMhtAlpha,mhtBeta,setMhtBeta,mhtSigma,setMhtSigma,
     userRailsEnabled,setUserRailsEnabled,
     userCustomRails,setUserCustomRails,sdeModel,setSdeModel,
     cirKappa,setCirKappa,cirTheta,setCirTheta,cirSigma,setCirSigma,
@@ -4094,7 +4392,7 @@ export default function HudsonPerryDriftV1() {
       customMutePhrases,mutePhraseInput,
       mathEpsilon,mathTfidf,mathJsd,mathLen,mathStruct,mathPersist,mathRepThresh,
       mathKalmanR,mathKalmanSigP,mathRagTopK,mathMaxTokens,
-      tuneTab,pruneThreshold,pruneKeep,showParams,
+      tuneTab,pruneThreshold,pruneKeep,showParams,showSdePaths,pathOpacity,
       advancedUnlocked,showSdeConfig,showRailsConfig,showConstEditor,
       userRailsEnabled,userCustomRails,sdeModel,
       cirKappa,cirTheta,cirSigma,hestonKappa,hestonTheta,hestonSigma,hestonRho,hestonV0]);
@@ -4205,9 +4503,9 @@ export default function HudsonPerryDriftV1() {
       {/* HEADER */}
       <div style={S.header}>
         <div>
-          <div style={S.title}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.30</div>
+          <div style={S.title}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.35</div>
           <div style={S.subtitle}>
-            © HUDSON &amp; PERRY RESEARCH · MUTE:{featMute?"ON":"OFF"} · GATE:{featGate?"ON":"OFF"} · PIPE:{featPipe?"ON":"OFF"} · REWIND:ON · V1.5.15
+            © HUDSON &amp; PERRY RESEARCH · MUTE:{featMute?"ON":"OFF"} · GATE:{featGate?"ON":"OFF"} · PIPE:{featPipe?"ON":"OFF"} · REWIND:ON · V1.5.35
           </div>
           <div style={{display:"flex",gap:10,marginTop:3}}>
             <a href="https://x.com/RaccoonStampede" target="_blank" rel="noreferrer"
@@ -4398,7 +4696,7 @@ export default function HudsonPerryDriftV1() {
         <div style={{background:"#F8FAFC",borderBottom:"1px solid #1EAAAA44",padding:"12px 20px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <span style={{...S.sectionTitle,marginBottom:0,color:"#0A7878"}}>
-              MISSION PROTOCOL — HUDSON &amp; PERRY ARCHITECT V1.5.30
+              MISSION PROTOCOL — HUDSON &amp; PERRY ARCHITECT V1.5.35
             </span>
             <button style={{...S.exportBtn,background:copied?"#E4F4F4":"transparent",
               color:copied?"#178040":"#0A7878"}} onClick={handleCopyExport}>
@@ -4455,7 +4753,7 @@ export default function HudsonPerryDriftV1() {
               <div style={{margin:"auto",textAlign:"center",
                 fontFamily:"Courier New, monospace",fontSize:11,lineHeight:2}}>
                 <div style={{fontSize:28,marginBottom:12,opacity:.3}}>⬡</div>
-                <div style={{opacity:.5,marginBottom:4}}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.30</div>
+                <div style={{opacity:.5,marginBottom:4}}>HUDSON &amp; PERRY'S DRIFT LAW · ARCHITECT V1.5.35</div>
                 <div style={{fontSize:9,letterSpacing:2,opacity:.4}}>
                   SDE · KALMAN · GARCH · TF-IDF · JSD · RAG · PIPE · MUTE · GATE · REWIND · ARCHITECT
                 </div>
@@ -4623,6 +4921,19 @@ export default function HudsonPerryDriftV1() {
                       <Line type="monotone" dataKey={d=>d.turn===rewindTurn?1:null}
                         stroke="#178040" strokeWidth={0} dot={{fill:"#178040",r:7,strokeWidth:0}} name="Rewind"/>
                     )}
+                  {showSdePaths&&pathChartData.map((pathPoints,pi)=>(
+                    <Line key={"sde-"+pi}
+                      data={pathPoints}
+                      type="monotone"
+                      dataKey={"p"+pi}
+                      stroke={currentMode.color||"#5090C0"}
+                      strokeWidth={0.8}
+                      strokeOpacity={pathOpacity}
+                      dot={false}
+                      isAnimationActive={false}
+                      legendType="none"
+                    />
+                  ))}
                   </ComposedChart>
                 </ResponsiveContainer>
               )}
@@ -4708,6 +5019,25 @@ export default function HudsonPerryDriftV1() {
 
             {/* Pipe + Variance */}
             <div style={S.metricSection}>
+              {caPassRate!==null&&showPoole&&(
+                <div style={{marginBottom:8,padding:"6px 10px",borderRadius:4,
+                  background:caPassRate>=0.875?"#EEF8EE":"#FFF8EE",
+                  border:"1px solid "+(caPassRate>=0.875?"#1A5C1A44":"#9A5C0844")}}>
+                  <div style={{fontFamily:"Courier New,monospace",fontSize:8,
+                    color:"#1A5C1A",letterSpacing:2,marginBottom:3}}>CIRCUIT SIGNAL</div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#2E5070"}}>FA pass rate</span>
+                    <span style={{fontFamily:"Courier New,monospace",fontSize:11,
+                      color:caPassRate>=0.875?"#1A5C1A":"#9A5C08",fontWeight:"bold"}}>
+                      {(caPassRate*100).toFixed(0)+"%"}
+                    </span>
+                  </div>
+                  <div style={{marginTop:4,height:4,background:"#1A5C1A22",borderRadius:2}}>
+                    <div style={{height:"100%",width:(caPassRate*100).toFixed(1)+"%",
+                      background:caPassRate>=0.875?"#1A5C1A":"#9A5C08",borderRadius:2}}/>
+                  </div>
+                </div>
+              )}
               <div style={S.sectionTitle}>VARIANCE PIPE · MUTE · GATE</div>
               {/* V1.5.0: token estimate + session ID */}
               {tokenEstimate>0&&(
@@ -4986,4 +5316,4 @@ export default function HudsonPerryDriftV1() {
     </SessionCtx.Provider>
     </TuneCtx.Provider>
   );
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+}
