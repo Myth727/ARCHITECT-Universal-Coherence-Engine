@@ -1,81 +1,55 @@
-# Contributing to Hudson & Perry's Drift Law
+# Contributing to ARCHITECT
 
-Thank you for your interest. This is an active R&D project. Contributions are welcome in the following areas.
+Thank you for your interest in contributing to ARCHITECT — a real-time AI coherence harness built on top of Claude.
 
-## Ways to Contribute
+## What this project is
 
-### 1. Validation Data
-The most valuable contribution right now is empirical data.
+ARCHITECT is an active R&D project. The core (PRESETS, FEATURES, MATH tabs) is stable. The ⚗ Advanced tab contains experimental, unvalidated features clearly labeled as such. Contributions to either layer are welcome.
 
-- Run sessions with the harness and export RESEARCH CSVs
-- Use the human override scoring (MY: field) to rate turns 0–1
-- Export with ratings to get the correlation coefficient
-- Share your session data (anonymized) as a GitHub issue or discussion
+## How to contribute
 
-This directly addresses the open validation items:
-- C-score vs human judgment correlation
-- H-signal false positive rate in real sessions
+**Bug reports** — Open an issue describing the behavior, the version (shown in TUNE modal footer), the device and browser, and steps to reproduce.
 
-### 2. Bug Reports
-Open an issue with:
-- Which version of the JSX you are using
-- What you expected vs what happened
-- The ARCHITECT log output if relevant (copy from the ARCHITECT modal)
-- Session ID (shown in the SUMMARY card and all exports)
+**Feature suggestions** — Open an issue with the label `enhancement`. Describe the use case, not just the feature.
 
-### 3. Mathematical Review
-The framework is open for mathematical scrutiny.
+**Code contributions** — Fork the repo, make your changes, open a pull request. Keep changes surgical — one concern per PR.
 
-- SDE stability analysis under different parameter regimes
-- GARCH parameter sensitivity
-- Coherence weight optimization
-- Kalman R/σP tuning for different conversation domains
+**SDK improvements** — The TypeScript SDK files are in the root of main (pending reorganization into `/sdk`). If you improve the math, update both the `.ts` file and the corresponding function in `ARCHITECT.jsx`.
 
-Open an issue tagged `[math]` with your analysis.
+## Framing guidelines
 
-### 4. SDK Extensions
-The SDK (`/sdk/src/`) is MIT licensed and modular. Each component is independently usable.
+- **Standard features** (PRESETS, FEATURES, MATH tabs): claims must be supported by the math or by observable behavior.
+- **Advanced/experimental features**: clearly label as experimental. Do not promote experimental results as validated findings.
+- **Constants** (damping, stability anchor): these are framework identity values. Modifications belong in the Advanced tab, clearly labeled.
 
-- Adding support for other LLM APIs (OpenAI, Grok, Gemini)
-- Alternative coherence metrics
-- Domain-specific signal detection patterns
-- Storage adapters for different environments
+## What we're looking for
 
-Open a pull request with tests and documentation.
+- Performance improvements (render optimization, memoization)
+- Mobile UX improvements (Samsung Android, iOS Safari)
+- New validated coherence metrics
+- Better RAG retrieval strategies
+- Standalone deploy path (Vercel / Next.js)
+- SDK test coverage
+- G0DM0D3 / Hermes Agent integration research
+- Poole Manifold CA extensions (3D rendering, larger grid sizes, animated step mode)
+- Circuit Benchmark improvements (additional logic gate tests beyond full adder)
+- MHT Study extensions (additional SDE models, empirical validation against real data)
 
-### 5. Preset Contributions
-If you have tuned a CUSTOM preset that works well for a specific domain, share the parameter values as a GitHub discussion. Validated presets may be added to the DEFAULT preset library.
+## What we're not looking for right now
 
-## What We Are Not Looking For
+- Changes that remove experimental warning banners in the Advanced tab
+- Claims that any experimental feature has been empirically validated without data
+- Breaking changes to the hpdl_config storage schema without a migration path
 
-- Auto-adaptation of κ = 0.444 — this is the framework identity constant, not a hyperparameter
-- Modifications that treat ε = 0.05 as a free parameter — it is the ghost tax floor
-- Changes that remove the R&D disclaimer or imply clinical/legal validation
+## Code style
 
-## Code Style
-
-The JSX follows a single-file architecture by design. All logic lives in `ARCHITECT.jsx`. When proposing changes:
-
-- Keep JSX structural changes minimal — wrap with `display:none` rather than conditional rendering where possible
-- Avoid template literals inside the `S={}` styles object — use string concatenation instead
-- Balance verification: `{` and `}` counts must match after any change
-- Test in a Claude artifact before submitting
-
-## Research Attribution
-
-If you publish research using this framework or its data, please cite:
-
-```
-Perry, D. & Hudson, D. (2026). Hudson & Perry's Drift Law — ARCHITECT V1.5.2.
-Hudson & Perry Research. github.com/Myth727/hudson-perry-drift-law
-```
+- Single file for the artifact (`ARCHITECT.jsx`) — no splitting
+- Surgical patches — read the surrounding code before touching anything
+- Version bump in the file header on any functional change
+- Comment any non-obvious math
 
 ## Contact
 
-Open a GitHub issue or reach out on X:
-- @Prosperous727 (David Perry)
-- @RaccoonStampede (David Hudson)
+X: @RaccoonStampede (David Hudson) · @Prosperous727 (David Perry)
 
----
-
-*All contributions are subject to the MIT License terms.*
+MIT Licensed — fork freely.

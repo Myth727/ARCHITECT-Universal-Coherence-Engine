@@ -1,13 +1,13 @@
 # Hudson & Perry's Drift Law — Framework Document
 
-**Version 3.6 | V1.5.21 | © 2026 Hudson & Perry Research**
+**Version 3.6 | V1.5.35 | © 2026 Hudson & Perry Research**
 David Hudson (@RaccoonStampede) & David Perry (@Prosperous727)
 
 ---
 
 ## Overview
 
-Three connected tools sharing the Hudson Constant κ = 0.444:
+Three connected tools sharing the damping constant κ = 0.444:
 
 1. **SDE Model** — tracks error dynamics over time
 2. **Drift Law** — macro inefficiency auditor

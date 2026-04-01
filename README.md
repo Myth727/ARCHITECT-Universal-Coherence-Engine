@@ -2,7 +2,7 @@
 
 ## by Hudson \& Perry · Real-Time LLM Monitoring
 
-**Version 1.5.29** · © 2026 Hudson & Perry Research
+**Version 1.5.35** · © 2026 Hudson & Perry Research
 **Authors:** David Hudson ([@RaccoonStampede](https://x.com/RaccoonStampede)) & David Perry ([@Prosperous727](https://x.com/Prosperous727))
 **License:** MIT
 
@@ -70,22 +70,20 @@ The core tool — `ARCHITECT.jsx` — is always current and fully functional reg
 
 ---
 
-## ARCHITECT V1.5.17 — What's New Since V1.5.8
+## ARCHITECT V1.5.35 — What's New
 
-- **Advanced Tab** — gated experimental zone (CIR, Heston, Custom Rails) with explicit warning labels. Standard users never need this tab.
-- **Custom Rails** — user-defined behavioral guidelines injected into every prompt alongside HPDL pipe directives. Write plain language: "Never exceed 3 paragraphs." "Always cite sources."
-- **Math tunables persist** — all coherence weights, Kalman params, SDE overrides survive reload
-- **Typing bug resolved** — `onInput` + `onCompositionEnd`, no more character jumping
-- **cfg fully threaded** — all preset thresholds flow through every component end-to-end
-- **cfg memoized** — stable reference, no unnecessary sendMessage invalidation
-- **Rewind prev/next fixed** — uses actual buffer bounds
-- **Research CSV health corrected** — uses preset penalty weights matching live score
-- **researchNotes uncontrolled** — no re-renders on keystrokes, beforeunload flush
-- **React Context architecture** — TuneCtx/SessionCtx, zero prop drilling
-- **All key values memoized** — ScoreBadge, liveSDEOverride, harnessChangeLog, cap_eff, contextPruned, S styles
-- **Model string** — `claude-sonnet-4-6` (current)
+- **CIRCUIT Preset** — new industry preset tuned for logic verification and cascading AI reasoning chains. Tightest variance tolerance, most aggressive drift escalation.
+- **Poole Manifold CA Simulator** — 3D cellular automaton in Advanced tab. Adjustable B/S params, live canvas, full adder truth table (8/8 Turing completeness verification).
+- **Circuit Signal** — live full adder pass rate shown in the metrics sidebar when Poole CA is active.
+- **SDE Path Visualization** — toggle to render faint OU ensemble paths on the coherence chart. Opacity control in DISPLAY tab. Color matches active preset.
+- **MHT Study Module** — Metatron-Hudson Theory SDE study panel in Advanced tab. Robitaille Helix invariants, H_drift annihilator params, live computed values.
+- **DATL Heartbeat** — N(t) scar-swarm and Δ_heartbeat live display in MHT section.
+- **Advanced Tab fully functional** — five independent feature toggles (Alt SDE, Custom Rails, Stability Panel, Edit Constants, MHT Study, Poole CA Sim). Each config section appears only when its toggle is on.
+- **MessageBubble memoized** — React.memo with custom equality. Previous messages no longer re-render on every keystroke or streaming token.
+- **Mobile scroll fixed** — TUNE modal scroll container now wraps all tabs correctly. Range inputs replaced with number inputs in Advanced tab (Android WebView compatibility).
+- **All pseudoscience/experimental framing** hidden behind Advanced tab consent gate. Standard UI is clean and credible.
 
-See `CHANGELOG.md` for the complete version history (V1.3 → V1.5.17).
+See `CHANGELOG.md` for the complete version history (V1.3 → V1.5.35).
 
 ---
 

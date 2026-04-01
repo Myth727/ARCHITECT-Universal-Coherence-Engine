@@ -1,5 +1,6 @@
 /**
  * HPDL SDK — SIGNAL DETECTION
+ * Version 1.5.35
  *
  * Hallucination signals (3 proxies):
  *   1. High-confidence language + elevated variance

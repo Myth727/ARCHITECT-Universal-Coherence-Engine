@@ -1,5 +1,6 @@
 /**
  * HPDL SDK — COHERENCE SCORING
+ * Version 1.5.35
  *
  * C = w_tfidf·TF-IDF + w_jsd·(1−JSD) + w_len·lenScore
  *   + w_struct·struct + w_persist·persist
