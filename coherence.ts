@@ -1,6 +1,6 @@
 /**
  * HPDL SDK — COHERENCE SCORING
- * Version 1.5.37
+ * Version 1.5.38
  *
  * C = w_tfidf·TF-IDF + w_jsd·(1−JSD) + w_len·lenScore
  *   + w_struct·struct + w_persist·persist
@@ -79,14 +79,15 @@ export function buildTermFreq(tokens: string[]): Record<string, number> {
 /**
  * 2-document TF-IDF cosine similarity.
  *
- * IDF design: with exactly 2 documents, df ∈ {1, 2}.
- *   df=1 (term in one doc only):  IDF = log(2) ≈ 0.693  → unique term, weighted
- *   df=2 (term in both docs):     IDF = log(1) = 0       → shared term, zeroed
+ * V1.5.38 fix: smoothed IDF = log((N+1)/(df+1)) + 1 (Scikit-learn default).
+ * Previous formula log(2/df) zeroed shared terms → dot product always 0
+ * → function always returned 0 regardless of input.
  *
- * This is intentional: the component measures vocabulary SHIFT between
- * the new response and recent history — not overlap. Coherent repetition
- * of domain terminology will score near 0 on this component, which is
- * offset by the JSD and persistence components in computeCoherence.
+ *   df=2 (shared term):  log(3/3)+1 = 1.000 — shared terms now contribute
+ *   df=1 (unique term):  log(3/2)+1 ≈ 1.405 — unique terms weighted higher
+ *
+ * Cosine similarity now correctly measures term distribution alignment:
+ * identical texts → ~1.0, on-topic continuation → 0.3-0.6, off-topic → ~0.0
  */
 export function tfidfSimilarity(tokensA: string[], tokensB: string[]): number {
   const tfA = buildTermFreq(tokensA);
@@ -98,7 +99,7 @@ export function tfidfSimilarity(tokensA: string[], tokensB: string[]): number {
   allTerms.forEach(term => {
     const inA = term in tfA ? 1 : 0;
     const inB = term in tfB ? 1 : 0;
-    const idf = (inA + inB > 0) ? Math.log(2 / (inA + inB)) : 0;
+    const idf = (inA + inB > 0) ? Math.log((2 + 1) / (inA + inB + 1)) + 1 : 0;
     const a = (tfA[term] || 0) * idf;
     const b = (tfB[term] || 0) * idf;
     dot += a * b; normA += a * a; normB += b * b;

@@ -3,6 +3,12 @@
 © 2026 Hudson & Perry Research
 𝕏 @RaccoonStampede (David Hudson) · 𝕏 @Prosperous727 (David Perry)
 
+## V1.5.38
+- CRITICAL SCORING FIX: tfidfSimilarity always returned 0 due to a mathematical identity in the IDF formula. Previous formula log(2/df): shared terms → IDF=log(1)=0 (zeroed); unique terms → other doc has tf=0, so dot contribution=0. Result: dot product always 0, function constant at 0 regardless of input. The 0.25 TF-IDF weight in the coherence formula has been dead since initial implementation. Fix: smoothed IDF = log((N+1)/(df+1))+1 (standard Scikit-learn default). Shared terms now contribute weight 1.0, unique terms 1.405. Identical texts now score ~1.0, on-topic continuations 0.3–0.6, off-topic responses ~0.0. Same fix applied to coherence.ts in SDK. Identified by external AI analysis (April 2026).
+- All version strings bumped to V1.5.38.
+
+---
+
 ## V1.5.37
 - Config save useEffect dep array: added 8 missing dependencies — showSdePaths, pathOpacity, caPassRate, pooleBirth1, pooleBirth2, pooleSurv1, pooleSurv2, pooleGen. Changes to Display tab opacity and Poole CA params now correctly trigger hpdl_config persistence without requiring an unrelated state change.
 - tuneCtxValue useMemo dep array: added 16 missing dependencies — showMhtStudy, all 8 MHT params (mhtPsi, mhtKappa, mhtTau, mhtGamma, mhtCap, mhtAlpha, mhtBeta, mhtSigma), showPoole, all 5 Poole params (pooleBirth1/2, pooleSurv1/2, pooleGen), caPassRate. TuneModal now re-renders correctly when Advanced tab params change.

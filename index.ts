@@ -1,6 +1,6 @@
 /**
  * ARCHITECT — UNIVERSAL COHERENCE ENGINE — SDK
- * Version 1.5.37
+ * Version 1.5.38
  *
  * © 2026 Hudson & Perry Research
  * Authors: David Hudson (@RaccoonStampede) & David Perry (@Prosperous727)

@@ -6,7 +6,7 @@ import {
 
 // ═══════════════════════════════════════════════════════════════
 //  FILE: ARCHITECT.jsx
-//  ARCHITECT — UNIVERSAL COHERENCE ENGINE · V1.5.37
+//  ARCHITECT — UNIVERSAL COHERENCE ENGINE · V1.5.38
 //  © Hudson & Perry Research
 //  Authors: David Hudson (@RaccoonStampede) · David Perry (@Prosperous727)
 //
@@ -342,15 +342,15 @@ function buildTermFreq(tokens) {
   return dist;
 }
 
-// V1.5.4 fix #9: IDF design documented explicitly.
-// This is a 2-document cosine similarity — the "corpus" is always exactly
-// tokensA and tokensB. IDF = log(2 / df) where df ∈ {1, 2}.
-//   df=1 (term in one doc only):  IDF = log(2) ≈ 0.693  → unique term, weighted
-//   df=2 (term in both docs):     IDF = log(1) = 0       → shared term, zeroed
-// Effect: terms shared by both responses get no weight; only divergent vocabulary
-// drives the score. This is intentional — it measures vocabulary shift rather
-// than overlap. Coherent repetition of key terms will score near 0 on this
-// component (offset by JSD and persistence components in computeCoherence).
+// V1.5.38 fix: smoothed IDF — previous formula log(2/df) zeroed shared terms,
+// making the dot product always 0 and tfidfSimilarity always return 0.
+// Root cause: terms in both docs → IDF=log(1)=0; terms in one doc only → other
+// doc has tf=0, so dot contribution is 0 either way. Function was constant 0.
+// Fix: smoothed IDF = log((N+1)/(df+1)) + 1 (standard Scikit-learn default).
+//   df=2 (shared):    log(3/3)+1 = 1.000 → shared terms now contribute
+//   df=1 (unique):    log(3/2)+1 ≈ 1.405 → unique terms weighted higher
+// Cosine similarity now measures how closely the two term distributions align,
+// with unique terms weighted above shared ones — correct for coherence scoring.
 function tfidfSimilarity(tokensA, tokensB) {
   const tfA=buildTermFreq(tokensA), tfB=buildTermFreq(tokensB);
   const allTerms=new Set([...Object.keys(tfA),...Object.keys(tfB)]);
@@ -358,7 +358,7 @@ function tfidfSimilarity(tokensA, tokensB) {
   let dot=0,normA=0,normB=0;
   allTerms.forEach(term=>{
     const inA=term in tfA?1:0, inB=term in tfB?1:0;
-    const idf=(inA+inB>0)?Math.log(2/(inA+inB)):0;
+    const idf=(inA+inB>0)?Math.log((2+1)/(inA+inB+1))+1:0;
     const a=(tfA[term]||0)*idf, b=(tfB[term]||0)*idf;
     dot+=a*b; normA+=a*a; normB+=b*b;
   });
@@ -704,7 +704,7 @@ function downloadSdePaths(livePaths, coherenceData, sessionId, nPaths, userKappa
 
 // ── System prompt ──────────────────────────────────────────────
 const BASE_SYSTEM =
-  `You are a highly precise technical assistant operating within ARCHITECT V1.5.37, a real-time AI coherence engine. `+
+  `You are a highly precise technical assistant operating within ARCHITECT V1.5.38, a real-time AI coherence engine. `+
   `Maintain strict logical consistency across all turns. Reference prior context explicitly when building on it. `+
   `When files are attached, analyze them thoroughly. `+
   `When RAG MEMORY is provided, treat it as recalled context. `+
@@ -743,9 +743,9 @@ function buildExportBlock(s) {
     :"  (empty)";
   const kappaNote=(userKappa??KAPPA)!==KAPPA?` ⚠ MODIFIED from 0.444`:"";
   const anchorNote=(userAnchor??RESONANCE_ANCHOR)!==RESONANCE_ANCHOR?` ⚠ MODIFIED from 623.81`:"";
-  return `START_MISSION_PROTOCOL: HUDSON_PERRY_DRIFT_ARCHITECT_V1.5.37
+  return `START_MISSION_PROTOCOL: HUDSON_PERRY_DRIFT_ARCHITECT_V1.5.38
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ARCHITECT — Universal Coherence Engine V1.5.37
+ARCHITECT — Universal Coherence Engine V1.5.38
 © Hudson & Perry Research
 ⚠ R&D ONLY — Proxy indicators, no warranty
 
@@ -1047,7 +1047,7 @@ function computeSessionHealth(coherenceData, driftCount, smoothedVar, calmStreak
 const FRAMEWORK_CONTENT=`ARCHITECT — UNIVERSAL COHERENCE ENGINE
 TIME-VARYING ERROR DYNAMICS & AI COHERENCE ENGINE
 Authors: David Hudson (@RaccoonStampede) & David Perry (@Prosperous727)
-Version 3.6  |  V1.5.37  |  © 2026
+Version 3.6  |  V1.5.38  |  © 2026
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1196,7 +1196,7 @@ CONFIRMED: SDE math ✓ | Kalman ✓ | GARCH ✓ | TF-IDF+JSD ✓
 REQUIRES VALIDATION: C-score vs. human judgment | H-signal
 false positive rate | 623.81 Hz physical anchor
 
-V1.5.3–V1.5.37 ADDITIONS TO FRAMEWORK
+V1.5.3–V1.5.38 ADDITIONS TO FRAMEWORK
   GARCH preset tuning: per-preset omega/alpha/beta now applied.
   Epsilon param: mathEpsilon wired to cap_eff, chart bands, MATH tab.
   cfg threading: varCaution/Decoherence/Calm flow through pipe, gate,
@@ -1206,11 +1206,11 @@ V1.5.3–V1.5.37 ADDITIONS TO FRAMEWORK
     and Advanced Tab state survive session reload.
   Rewind: prev/next buttons use actual buffer bounds.
   All key values memoized. Model string: claude-sonnet-4-6.
-  V1.5.17–V1.5.37: Advanced Tab (CIR/Heston, Custom Rails, MHT Study,
+  V1.5.17–V1.5.38: Advanced Tab (CIR/Heston, Custom Rails, MHT Study,
     Poole CA Sim, DATL Heartbeat). CIRCUIT preset. SDE path viz.
     Circuit Signal sidebar. Mobile scroll fixed. Full pseudoscience
     cleanup — experimental framing behind consent gate. MessageBubble
-    memoized. All version strings normalized to V1.5.37.
+    memoized. All version strings normalized to V1.5.38.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1220,7 +1220,7 @@ V1.5.3–V1.5.37 ADDITIONS TO FRAMEWORK
 // ── Guide Content ──────────────────────────────────────────────
 const GUIDE_CONTENT=`ARCHITECT — UNIVERSAL COHERENCE ENGINE · USER GUIDE
 How to Read the Graph · How to Detect Drift · How to Use the Harness
-Version 1.5.37  |  © 2026 David Hudson & David Perry
+Version 1.5.38  |  © 2026 David Hudson & David Perry
 
 ARCHITECT monitors AI response quality in real time. It scores every
 response mathematically, tracks coherence trends, and injects corrective
@@ -1409,7 +1409,7 @@ A: Yes. CHAT downloads a clean text file with an audit table.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-PART 8 — V1.5.x ADDITIONS (V1.5.0 → V1.5.37)
+PART 8 — V1.5.x ADDITIONS (V1.5.0 → V1.5.38)
 
 SDE PATH COUNT (TUNE → SDE SIMULATION PATHS)
   Default: 50 paths. Options: 5, 10, 20, 25, 50, 100, 200, 250, 300, 500.
@@ -1608,7 +1608,7 @@ const DisclaimerModal = React.memo(function DisclaimerModal({showDisclaimer,setS
         </div>
         <div style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#4A6060",letterSpacing:1}}>
-          ARCHITECT — UNIVERSAL COHERENCE ENGINE V1.5.37 · READ IN FULL BEFORE PROCEEDING
+          ARCHITECT — UNIVERSAL COHERENCE ENGINE V1.5.38 · READ IN FULL BEFORE PROCEEDING
         </div>
       </div>
 
@@ -2579,7 +2579,7 @@ const TuneModal = React.memo(function TuneModal() {
         display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#2E5070",letterSpacing:1}}>
-          ACTIVE: {PRESETS[activePreset]?.label??activePreset} · V1.5.37
+          ACTIVE: {PRESETS[activePreset]?.label??activePreset} · V1.5.38
         </span>
         <button onClick={()=>setShowTuning(false)}
           style={{padding:"4px 14px",background:"#EEF8F2",
@@ -3047,7 +3047,7 @@ const BookmarksModal = React.memo(function BookmarksModal() {
         </span>
         <span style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#2E5070",letterSpacing:1}}>
-          V1.5.37 © HUDSON &amp; PERRY
+          V1.5.38 © HUDSON &amp; PERRY
         </span>
       </div>
     </div>
@@ -4514,9 +4514,9 @@ export default function HudsonPerryDriftV1() {
       {/* HEADER */}
       <div style={S.header}>
         <div>
-          <div style={S.title}>ARCHITECT — UNIVERSAL COHERENCE ENGINE V1.5.37</div>
+          <div style={S.title}>ARCHITECT — UNIVERSAL COHERENCE ENGINE V1.5.38</div>
           <div style={S.subtitle}>
-            © HUDSON &amp; PERRY RESEARCH · MUTE:{featMute?"ON":"OFF"} · GATE:{featGate?"ON":"OFF"} · PIPE:{featPipe?"ON":"OFF"} · REWIND:ON · V1.5.37
+            © HUDSON &amp; PERRY RESEARCH · MUTE:{featMute?"ON":"OFF"} · GATE:{featGate?"ON":"OFF"} · PIPE:{featPipe?"ON":"OFF"} · REWIND:ON · V1.5.38
           </div>
           <div style={{display:"flex",gap:10,marginTop:3}}>
             <a href="https://x.com/RaccoonStampede" target="_blank" rel="noreferrer"
@@ -4707,7 +4707,7 @@ export default function HudsonPerryDriftV1() {
         <div style={{background:"#F8FAFC",borderBottom:"1px solid #1EAAAA44",padding:"12px 20px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <span style={{...S.sectionTitle,marginBottom:0,color:"#0A7878"}}>
-              MISSION PROTOCOL — HUDSON &amp; PERRY ARCHITECT V1.5.37
+              MISSION PROTOCOL — HUDSON &amp; PERRY ARCHITECT V1.5.38
             </span>
             <button style={{...S.exportBtn,background:copied?"#E4F4F4":"transparent",
               color:copied?"#178040":"#0A7878"}} onClick={handleCopyExport}>
@@ -4764,7 +4764,7 @@ export default function HudsonPerryDriftV1() {
               <div style={{margin:"auto",textAlign:"center",
                 fontFamily:"Courier New, monospace",fontSize:11,lineHeight:2}}>
                 <div style={{fontSize:28,marginBottom:12,opacity:.3}}>⬡</div>
-                <div style={{opacity:.5,marginBottom:4}}>ARCHITECT — UNIVERSAL COHERENCE ENGINE V1.5.37</div>
+                <div style={{opacity:.5,marginBottom:4}}>ARCHITECT — UNIVERSAL COHERENCE ENGINE V1.5.38</div>
                 <div style={{fontSize:9,letterSpacing:2,opacity:.4}}>
                   SDE · KALMAN · GARCH · TF-IDF · JSD · RAG · PIPE · MUTE · GATE · REWIND · ARCHITECT
                 </div>
