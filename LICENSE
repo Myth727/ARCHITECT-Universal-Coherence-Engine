@@ -1,8 +1,7 @@
 MIT License
 
 Copyright (c) 2026 Hudson & Perry Research
-
-Authors: David Hudson (@RaccoonStampede) & David Perry (@Prosperous727)
+Authors: David Hudson (@RaccoonStampede) · David Perry (@Prosperous727)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -15,26 +14,118 @@ The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
----
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-RESEARCH NOTICE
+CITATION
 
-This software implements mathematical proxy indicators — not clinically or
-legally validated measurements. All outputs (coherence scores, signal
-detections, session health) are experimental research tools. No warranty
-expressed or implied regarding accuracy or fitness for any purpose.
+If you use this software in research, publications, or derivative works,
+please cite as:
 
-The Hudson Constants (κ = 0.444, RESONANCE_ANCHOR = 623.81, ε = 0.05) are
-the framework identity constants published by Hudson & Perry Research (2026).
-Attribution appreciated when used in published research.
+  Perry, D. & Hudson, D. (2026). ARCHITECT — Universal Coherence Engine
+  (V1.5.42). Hudson & Perry Research.
+  GitHub: https://github.com/Myth727/ARCHITECT-Universal-Coherence-Engine
+  X @RaccoonStampede · @Prosperous727
 
-Reference:
-Hudson, D. & Perry, D. (2026). ARCHITECT — Universal Coherence Engine V1.5.37.
-Hudson & Perry Research. @RaccoonStampede · @Prosperous727
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SCOPE OF THIS SOFTWARE
+
+ARCHITECT — Universal Coherence Engine is a real-time AI coherence
+monitoring and correction layer for Claude API conversations. It includes:
+
+  · TF-IDF + Jensen-Shannon Divergence coherence scoring (smoothed IDF,
+    calibrated against working similarity post V1.5.38)
+  · Kalman filter state estimation (GARCH-in-Mean coupled, V1.5.39)
+  · GARCH(1,1) variance modeling with per-preset tuning
+  · Stochastic Differential Equation simulation (OU + periodic forcing,
+    jump-diffusion / Merton 1976, GARCH-in-Mean / Engle et al. 1987)
+  · Signal detection: Shannon entropy, vocabulary growth rate, n-gram
+    repetition, hedge density, response truncation, anchor distance,
+    Kalman innovation autocorrelation, token efficiency ratio
+  · Behavioral signal detection (7 proxies) and hallucination signal
+    detection (5 proxies)
+  · Pipe injection, RAG retrieval, harness escalation, EWMA trend
+  · Framework mode disclosure: Hudson Framework (k=0.444) or Standard
+    Mode (k=0.500), user-selectable at first run
+  · Integrity Floor detection inspired by Trumble's Macro-Ratchet
+    Framework (2026) and the hydrogen ionization floor concept
+  · Advanced experimental features: MHT Study, Poole CA Simulator,
+    CIR/Heston SDE models
+  · TypeScript SDK for integration into external pipelines
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RESEARCH & DEVELOPMENT NOTICE
+
+This software is an experimental research and development tool. All outputs
+including coherence scores, signal detections, variance states, Kalman
+estimates, SDE bands, session health scores, and integrity breach events
+are mathematical proxy indicators only. They do not constitute measurements,
+assessments, diagnoses, or determinations of any kind.
+
+THIS SOFTWARE MUST NOT BE USED — DIRECTLY OR INDIRECTLY — TO INFORM
+MEDICAL, CLINICAL, LEGAL, FINANCIAL, SAFETY-CRITICAL, OR REGULATORY
+DECISIONS. This prohibition applies regardless of deployment context.
+
+The Hudson Framework constants (k=0.444, RESONANCE_ANCHOR=623.81 Hz)
+are the default parameters of the Hudson-Perry Drift Law framework and
+are disclosed to users at first run. Standard parameters (k=0.500) are
+available as an alternative. Results generated under modified constants
+operate outside the validated framework.
+
+Advanced tab features (MHT Study, Poole CA Simulator, Integrity Floor,
+CIR/Heston SDE models) are explicitly labeled experimental and require
+user consent before activation. These features may include unvalidated
+mathematical models and carry no empirical confirmation.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+THIRD-PARTY THEORETICAL REFERENCES
+
+This software incorporates concepts from or is informed by the following
+independent works, used for theoretical framing only:
+
+  · Engle, R.F., Lilien, D.M., & Robins, R.P. (1987). Estimating time
+    varying risk premia in the term structure: The ARCH-M model.
+    Econometrica, 55(2), 391-407. [GARCH-in-Mean coupling]
+
+  · Merton, R.C. (1976). Option pricing when underlying stock returns are
+    discontinuous. Journal of Financial Economics, 3(1-2), 125-144.
+    [Jump-diffusion model]
+
+  · Box, G.E.P. & Jenkins, G.M. (1970). Time Series Analysis: Forecasting
+    and Control. [Kalman innovation whiteness check]
+
+  · Kim, Kojaku, Ahn et al. (2026). Embedding Disruptiveness Measure.
+    Science Advances, April 2026. [45-degree angular invariant parallel]
+
+  · Trumble, R.T. (2026). The Macro-Ratchet Framework: Coherent Ordering
+    Dynamics and Universal Predictive Algebra. Zenodo.
+    [Integrity Floor / hydrogen ionization floor concept]
+
+These references informed conceptual development. Inclusion does not imply
+endorsement by or affiliation with any referenced author or institution.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRIVACY & DATA
+
+Conversation data is transmitted to Anthropic's API under the user's own
+API key and is subject to Anthropic's terms of service and privacy policy.
+This tool does not independently store, log, or transmit conversation
+content beyond the active browser session. API keys are session-only and
+are never written to persistent storage.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CONTACT
+
+X @RaccoonStampede (David Hudson)
+X @Prosperous727 (David Perry)
+GitHub: https://github.com/Myth727/ARCHITECT-Universal-Coherence-Engine
