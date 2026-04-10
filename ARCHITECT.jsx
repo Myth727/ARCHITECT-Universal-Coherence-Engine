@@ -6,7 +6,7 @@ import {
 
 // ═══════════════════════════════════════════════════════════════
 //  FILE: ARCHITECT.jsx
-//  ARCHITECT — UNIVERSAL COHERENCE ENGINE · V1.5.39
+//  ARCHITECT — UNIVERSAL COHERENCE ENGINE · V1.5.42
 //  © Hudson & Perry Research
 //  Authors: David Hudson (@RaccoonStampede) · David Perry (@Prosperous727)
 //
@@ -172,8 +172,8 @@ function randn(rng) {
 }
 
 // ── SDE ────────────────────────────────────────────────────────
-// V1.5.39: GARCH-in-Mean — delta term couples variance into drift.
-// V1.5.39: Jump-diffusion (Merton 1976) — Poisson jump process models
+// V1.5.42: GARCH-in-Mean — delta term couples variance into drift.
+// V1.5.42: Jump-diffusion (Merton 1976) — Poisson jump process models
 // sudden topic shifts which are discontinuous, not smooth drift.
 function simulateSDE(params,T,dt=0.02,nPaths=50,seed=42) {
   const {alpha,beta_p,omega,sigma,kappa,delta=0,jumpIntensity=0,jumpMagnitude=0}=params;
@@ -205,7 +205,7 @@ function sdePercentilesAtStep(paths,step) {
 }
 
 // ── Kalman ─────────────────────────────────────────────────────
-// V1.5.39: GARCH-in-Mean coupling — smoothedVar (optional, default 0) is
+// V1.5.42: GARCH-in-Mean coupling — smoothedVar (optional, default 0) is
 // subtracted from the drift term via delta. When variance is high, the
 // process model predicts stronger mean reversion, tightening the estimate.
 // Couples the Kalman process model with the GARCH variance output.
@@ -376,7 +376,7 @@ function buildTermFreq(tokens) {
   return dist;
 }
 
-// V1.5.39 fix: smoothed IDF — previous formula log(2/df) zeroed shared terms,
+// V1.5.42 fix: smoothed IDF — previous formula log(2/df) zeroed shared terms,
 // making the dot product always 0 and tfidfSimilarity always return 0.
 // Root cause: terms in both docs → IDF=log(1)=0; terms in one doc only → other
 // doc has tf=0, so dot contribution is 0 either way. Function was constant 0.
@@ -536,8 +536,8 @@ function buildRagEntry(content,score,turn) {
 function ragRetrieve(query,cache,k=RAG_TOP_K) {
   if (!cache.length||!query?.trim()) return [];
   const qt=tokenize(query);
-  // V1.5.39: threshold raised from 0.05 to 0.15 — calibrated for smoothed IDF
-  // (V1.5.39 fix). Old threshold was set against broken TF-IDF that always
+  // V1.5.42: threshold raised from 0.05 to 0.15 — calibrated for smoothed IDF
+  // (V1.5.42 fix). Old threshold was set against broken TF-IDF that always
   // returned 0. With working similarity, 0.05 is too loose and retrieves
   // marginally-related turns. 0.15 requires meaningful term overlap.
   return cache.map(e=>({...e,sim:tfidfSimilarity(qt,e.tokens)}))
@@ -742,7 +742,7 @@ function downloadSdePaths(livePaths, coherenceData, sessionId, nPaths, userKappa
 
 // ── System prompt ──────────────────────────────────────────────
 const BASE_SYSTEM =
-  `You are a highly precise technical assistant operating within ARCHITECT V1.5.39, a real-time AI coherence engine. `+
+  `You are a highly precise technical assistant operating within ARCHITECT V1.5.42, a real-time AI coherence engine. `+
   `Maintain strict logical consistency across all turns. Reference prior context explicitly when building on it. `+
   `When files are attached, analyze them thoroughly. `+
   `When RAG MEMORY is provided, treat it as recalled context. `+
@@ -781,9 +781,9 @@ function buildExportBlock(s) {
     :"  (empty)";
   const kappaNote=(userKappa??KAPPA)!==KAPPA?` ⚠ MODIFIED from 0.444`:"";
   const anchorNote=(userAnchor??RESONANCE_ANCHOR)!==RESONANCE_ANCHOR?` ⚠ MODIFIED from 623.81`:"";
-  return `START_MISSION_PROTOCOL: HUDSON_PERRY_DRIFT_ARCHITECT_V1.5.39
+  return `START_MISSION_PROTOCOL: HUDSON_PERRY_DRIFT_ARCHITECT_V1.5.42
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ARCHITECT — Universal Coherence Engine V1.5.39
+ARCHITECT — Universal Coherence Engine V1.5.42
 © Hudson & Perry Research
 ⚠ R&D ONLY — Proxy indicators, no warranty
 
@@ -1036,7 +1036,7 @@ function assessBehavioralSignals(responseText, userText, history) {
     signals.push({type:"unsolicited_elaboration",detail:`Response ${unsolicited.length>0?"contains unrequested content patterns":"is "+Math.round(wordCount/avgLen*100)+"% longer than session average"}`});
   }
 
-  // V1.5.39: n-gram repetition — high bigram overlap with recent turns
+  // V1.5.42: n-gram repetition — high bigram overlap with recent turns
   // indicates model looping or confusion, not caught by word-level checks.
   const ngramRate=checkNgramRepetition(responseText,history);
   if (ngramRate>0.40&&ah.length>=3) {
@@ -1080,7 +1080,7 @@ function checkSelfContradiction(responseText, history) {
   const ah=history.filter(m=>m.role==="assistant");
   if (ah.length<2) return false;
   const respT=tokenize(responseText);
-  // V1.5.39: related threshold lowered from 0.35 to 0.25 — calibrated for
+  // V1.5.42: related threshold lowered from 0.35 to 0.25 — calibrated for
   // smoothed IDF. With working TF-IDF, on-topic continuations score 0.30-0.50.
   // Old 0.35 threshold was at the edge of normal on-topic scoring and missed
   // related turns. 0.25 catches same-topic turns more reliably.
@@ -1101,7 +1101,7 @@ function assessHallucinationSignals(responseText, smoothedVar, attachments, hist
   // M1 fix: use cfg.varCaution so MEDICAL preset's tighter threshold (0.090) applies
   const vCau=cfg?.varCaution??VAR_CAUTION;
 
-  // V1.5.39: entropy + vocab growth rate signals
+  // V1.5.42: entropy + vocab growth rate signals
   const respTokens=tokenize(responseText);
   const entropy=computeResponseEntropy(respTokens);
   const vocabGrowth=computeVocabGrowthRate(respTokens,history);
@@ -1145,7 +1145,7 @@ function computeSessionHealth(coherenceData, driftCount, smoothedVar, calmStreak
   const bw=cfg?.healthBSigWeight??4;
   const hw=cfg?.healthHSigWeight??6;
   const driftPenalty=Math.min(driftCount*dw,40);
-  // V1.5.39: continuous variance penalty — replaces binary step function.
+  // V1.5.42: continuous variance penalty — replaces binary step function.
   // Previous: 0/10/20 at three fixed thresholds. Now scales continuously
   // with variance * 100, capped at 25. More granular health signal.
   const varPenalty=Math.min(25,Math.round((smoothedVar||0)*100));
@@ -1158,11 +1158,134 @@ function computeSessionHealth(coherenceData, driftCount, smoothedVar, calmStreak
   return Math.min(100,Math.max(0,base-driftPenalty-varPenalty-bPenalty-hPenalty+calmBonus));
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  V1.5.42 ADDITIONS
+// ═══════════════════════════════════════════════════════════════
+
+// ── 1. EWMA Coherence Trend ────────────────────────────────────
+// Exponentially weighted moving average over raw coherence scores.
+// Returns direction: +1 (improving), -1 (declining), 0 (flat).
+// Alpha=0.30: recent turns weighted ~3x more than older turns.
+// Complements Kalman position estimate with directional momentum.
+const EWMA_ALPHA = 0.30;
+function computeEWMATrend(scoreHistory) {
+  if (scoreHistory.length < 3) return {ewma:null,trend:0,momentum:0};
+  let ewma = scoreHistory[0];
+  for (let i=1; i<scoreHistory.length; i++) {
+    ewma = EWMA_ALPHA*scoreHistory[i] + (1-EWMA_ALPHA)*ewma;
+  }
+  // Momentum: compare ewma of last half vs first half
+  const mid = Math.floor(scoreHistory.length/2);
+  let ewmaFirst=scoreHistory[0], ewmaSecond=scoreHistory[mid];
+  for (let i=1; i<mid; i++) ewmaFirst=EWMA_ALPHA*scoreHistory[i]+(1-EWMA_ALPHA)*ewmaFirst;
+  for (let i=mid+1; i<scoreHistory.length; i++) ewmaSecond=EWMA_ALPHA*scoreHistory[i]+(1-EWMA_ALPHA)*ewmaSecond;
+  const momentum = ewmaSecond - ewmaFirst;
+  const trend = momentum > 0.02 ? 1 : momentum < -0.02 ? -1 : 0;
+  return {ewma, trend, momentum};
+}
+
+// ── 2. Hedge Detection ─────────────────────────────────────────
+// Detects excessive epistemic hedging — the opposite of over-confidence.
+// Grice's Maxim of Quantity (1975): responses should be as informative
+// as required. Excessive hedging on technical/factual questions violates
+// this and signals low-confidence responses that may still be wrong.
+// Fires as H-signal when hedge density exceeds threshold.
+const HEDGE_PATTERNS = [
+  /\bI('m| am) not (sure|certain|entirely sure|fully sure)\b/i,
+  /\bit('s| is) (possible|conceivable|plausible) that\b/i,
+  /\bmight (be|have|want|consider)\b/i,
+  /\bcould (be|potentially|possibly)\b/i,
+  /\bI (think|believe|suspect|imagine) (but|though|although)\b/i,
+  /\bI('m| am) not (an expert|a doctor|a lawyer|qualified)\b/i,
+  /\btake (this|that|it) with a (grain|pinch) of salt\b/i,
+  /\byou (might|may|should) (want to |consider )?consult\b/i,
+  /\bdon't (quote|hold) me on (that|this)\b/i,
+  /\bI (could be|may be) wrong\b/i,
+];
+function detectHedgeDensity(text) {
+  const matches = HEDGE_PATTERNS.filter(p=>p.test(text)).length;
+  const wordCount = text.split(/\s+/).length;
+  // Density: hedge patterns per 100 words
+  return {count:matches, density: wordCount > 0 ? (matches/wordCount)*100 : 0};
+}
+
+// ── 3. Response Truncation Detection ──────────────────────────
+// Responses that end abruptly signal token limit or context exhaustion.
+// Model didn't complete its answer but didn't flag it either.
+// Checks last non-whitespace character — valid endings: . ? ! ) ] "
+// Also catches mid-list truncation (ends on comma or colon).
+function detectTruncation(text) {
+  const trimmed = text.trimEnd();
+  if (!trimmed || trimmed.length < 50) return false;
+  const last = trimmed[trimmed.length-1];
+  const validEndings = new Set(['.','!','?',')',']','}','"',"'",'`',':']);
+  // Colon at end = likely truncated (was about to list something)
+  if (last === ':') return true;
+  if (last === ',') return true;
+  return !validEndings.has(last);
+}
+
+// ── 4. Semantic Anchor Distance ────────────────────────────────
+// Tracks how far the current response has drifted from the session's
+// opening turns (turns 1-3 = the "anchor"). Local turn-by-turn coherence
+// can stay high while the session slowly drifts far from original topic.
+// This closes the slow-burn drift gap that turn-by-turn scoring misses.
+// Returns similarity to anchor [0,1]. Low = session has drifted far.
+function computeAnchorDistance(responseText, history) {
+  const ah = history.filter(m=>m.role==="assistant");
+  if (ah.length < 4) return null; // need enough turns before anchor matters
+  // Anchor = first 3 assistant turns
+  const anchorText = ah.slice(0,3).map(m=>getTextFromContent(m.content)).join(" ");
+  const anchorTokens = tokenize(anchorText);
+  const respTokens = tokenize(responseText);
+  if (!anchorTokens.length || !respTokens.length) return null;
+  return tfidfSimilarity(respTokens, anchorTokens);
+}
+
+// ── 5. Kalman Innovation Whiteness Check ───────────────────────
+// If the Kalman filter is correctly specified, the innovation sequence
+// (obs - predicted) should be white noise — uncorrelated across turns.
+// Serial correlation = model misspecification (process or noise model wrong).
+// Lag-1 autocorrelation. |r| > 0.5 = significant serial correlation.
+// Reference: Box & Jenkins (1970), standard Kalman validation procedure.
+function computeInnovationAutocorrelation(scoreHistory, kalmanHistory) {
+  if (!kalmanHistory||kalmanHistory.length < 5||scoreHistory.length < 5) return null;
+  const n = Math.min(scoreHistory.length, kalmanHistory.length);
+  // Innovation = obs - predicted (simplified: obs - kalman_x)
+  const innov = [];
+  for (let i=0; i<n; i++) {
+    innov.push(scoreHistory[i] - (kalmanHistory[i]?.x ?? scoreHistory[i]));
+  }
+  // Lag-1 autocorrelation
+  const mean = innov.reduce((s,v)=>s+v,0)/innov.length;
+  let cov=0, variance=0;
+  for (let i=1; i<innov.length; i++) {
+    cov += (innov[i]-mean)*(innov[i-1]-mean);
+    variance += Math.pow(innov[i]-mean,2);
+  }
+  variance += Math.pow(innov[0]-mean,2);
+  return variance === 0 ? 0 : cov/variance;
+}
+
+// ── 6. Token Budget Efficiency Ratio ──────────────────────────
+// Response information density relative to length.
+// High entropy + short = efficient. Low entropy + long = expensive waste.
+// Ratio: entropy / log2(wordCount) — normalized so 1.0 = optimal.
+// < 0.4 = long response with low information (padding/filler).
+// > 1.2 = dense, efficient response.
+// Especially useful for MEDICAL/CIRCUIT where precision-per-token matters.
+function computeEfficiencyRatio(text, entropy) {
+  const wordCount = text.split(/\s+/).filter(w=>w.length>0).length;
+  if (wordCount < 5 || entropy <= 0) return null;
+  const lenNorm = Math.log2(Math.max(wordCount, 2));
+  return lenNorm > 0 ? entropy / lenNorm : null;
+}
+
 // ── Framework Document ─────────────────────────────────────────
 const FRAMEWORK_CONTENT=`ARCHITECT — UNIVERSAL COHERENCE ENGINE
 TIME-VARYING ERROR DYNAMICS & AI COHERENCE ENGINE
 Authors: David Hudson (@RaccoonStampede) & David Perry (@Prosperous727)
-Version 3.6  |  V1.5.39  |  © 2026
+Version 3.6  |  V1.5.42  |  © 2026
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1311,7 +1434,7 @@ CONFIRMED: SDE math ✓ | Kalman ✓ | GARCH ✓ | TF-IDF+JSD ✓
 REQUIRES VALIDATION: C-score vs. human judgment | H-signal
 false positive rate | 623.81 Hz physical anchor
 
-V1.5.3–V1.5.39 ADDITIONS TO FRAMEWORK
+V1.5.3–V1.5.42 ADDITIONS TO FRAMEWORK
   GARCH preset tuning: per-preset omega/alpha/beta now applied.
   Epsilon param: mathEpsilon wired to cap_eff, chart bands, MATH tab.
   cfg threading: varCaution/Decoherence/Calm flow through pipe, gate,
@@ -1321,11 +1444,11 @@ V1.5.3–V1.5.39 ADDITIONS TO FRAMEWORK
     and Advanced Tab state survive session reload.
   Rewind: prev/next buttons use actual buffer bounds.
   All key values memoized. Model string: claude-sonnet-4-6.
-  V1.5.17–V1.5.39: Advanced Tab (CIR/Heston, Custom Rails, MHT Study,
+  V1.5.17–V1.5.42: Advanced Tab (CIR/Heston, Custom Rails, MHT Study,
     Poole CA Sim, DATL Heartbeat). CIRCUIT preset. SDE path viz.
     Circuit Signal sidebar. Mobile scroll fixed. Full pseudoscience
     cleanup — experimental framing behind consent gate. MessageBubble
-    memoized. All version strings normalized to V1.5.39.
+    memoized. All version strings normalized to V1.5.42.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1524,7 +1647,7 @@ A: Yes. CHAT downloads a clean text file with an audit table.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-PART 8 — V1.5.x ADDITIONS (V1.5.0 → V1.5.39)
+PART 8 — V1.5.x ADDITIONS (V1.5.0 → V1.5.42)
 
 SDE PATH COUNT (TUNE → SDE SIMULATION PATHS)
   Default: 50 paths. Options: 5, 10, 20, 25, 50, 100, 200, 250, 300, 500.
@@ -1704,7 +1827,7 @@ const ExportContentModal = React.memo(function ExportContentModal() {
 });
 
 // ── DisclaimerModal ──────────────────────────────────────────────
-const DisclaimerModal = React.memo(function DisclaimerModal({showDisclaimer,setShowDisclaimer,setShowGuide}) {
+const DisclaimerModal = React.memo(function DisclaimerModal({showDisclaimer,setShowDisclaimer,setShowGuide,hudsonMode,setHudsonMode,setUserKappa}) {
   if (!showDisclaimer) return null;
   return (
   <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
@@ -1723,7 +1846,7 @@ const DisclaimerModal = React.memo(function DisclaimerModal({showDisclaimer,setS
         </div>
         <div style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#4A6060",letterSpacing:1}}>
-          ARCHITECT — UNIVERSAL COHERENCE ENGINE V1.5.39 · READ IN FULL BEFORE PROCEEDING
+          ARCHITECT — UNIVERSAL COHERENCE ENGINE V1.5.42 · READ IN FULL BEFORE PROCEEDING
         </div>
       </div>
 
@@ -1787,21 +1910,77 @@ const DisclaimerModal = React.memo(function DisclaimerModal({showDisclaimer,setS
       </div>
 
       {/* Footer */}
-      <div style={{padding:"12px 20px",borderTop:"1px solid #2A1A00",
-        background:"#FAFCFF",flexShrink:0,
-        display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <span style={{fontFamily:"Courier New, monospace",fontSize:7,
-          color:"#2E5070",lineHeight:1.5}}>
-          Proceeding confirms you have read and accepted all terms above.
-        </span>
-        <button
-          style={{padding:"10px 24px",background:"#F0FFEE",
-            border:"2px solid #9A5C08",borderRadius:4,color:"#9A5C08",
-            cursor:"pointer",fontSize:10,fontFamily:"Courier New, monospace",
-            letterSpacing:1,fontWeight:"bold",flexShrink:0,marginLeft:16}}
-          onClick={()=>{setShowDisclaimer(false);setShowGuide(true);}}>
-          I ACCEPT — READ THE GUIDE FIRST
-        </button>
+      <div style={{padding:"14px 20px",borderTop:"1px solid #2A1A00",
+        background:"#FAFCFF",flexShrink:0}}>
+
+        {/* Framework choice — shown until user picks */}
+        <div style={{marginBottom:12,padding:"10px 14px",borderRadius:6,
+          background:"#F0F4FA",border:"1px solid #2A4060"}}>
+          <div style={{fontFamily:"Courier New,monospace",fontSize:9,color:"#0E2A5A",
+            letterSpacing:2,fontWeight:"bold",marginBottom:6}}>
+            CHOOSE FRAMEWORK MODE
+          </div>
+          <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#2E5070",
+            lineHeight:1.8,marginBottom:10}}>
+            ARCHITECT uses a damping constant κ in its SDE and Kalman engine. Choose your default:
+          </div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            <button
+              onClick={()=>{setHudsonMode("hudson");setUserKappa(0.444);}}
+              style={{flex:1,minWidth:160,padding:"10px 12px",cursor:"pointer",
+                borderRadius:4,fontFamily:"Courier New,monospace",fontSize:8,
+                letterSpacing:1,fontWeight:"bold",textAlign:"left",
+                background:hudsonMode==="hudson"?"#0E2A5A":"#EEF4FF",
+                color:hudsonMode==="hudson"?"#FFFFFF":"#0E2A5A",
+                border:hudsonMode==="hudson"?"2px solid #0E2A5A":"1px solid #2A4060"}}>
+              <div style={{fontSize:10,marginBottom:3}}>κ = 0.444</div>
+              <div style={{opacity:.85}}>HUDSON FRAMEWORK</div>
+              <div style={{fontSize:7,opacity:.7,marginTop:3,lineHeight:1.6}}>
+                Validated default. Hudson-Perry Drift Law. Full framework active including Zero-Drift Lock and LOCK_888 stability.
+              </div>
+            </button>
+            <button
+              onClick={()=>{setHudsonMode("standard");setUserKappa(0.5);}}
+              style={{flex:1,minWidth:160,padding:"10px 12px",cursor:"pointer",
+                borderRadius:4,fontFamily:"Courier New,monospace",fontSize:8,
+                letterSpacing:1,fontWeight:"bold",textAlign:"left",
+                background:hudsonMode==="standard"?"#178040":"#EEFAF4",
+                color:hudsonMode==="standard"?"#FFFFFF":"#178040",
+                border:hudsonMode==="standard"?"2px solid #178040":"1px solid #40A060"}}>
+              <div style={{fontSize:10,marginBottom:3}}>κ = 0.500</div>
+              <div style={{opacity:.85}}>STANDARD MODE</div>
+              <div style={{fontSize:7,opacity:.7,marginTop:3,lineHeight:1.6}}>
+                Neutral OU damping. No framework claims. Tune κ freely 0.00–5.00 in Advanced → Edit Constants.
+              </div>
+            </button>
+          </div>
+          {!hudsonMode&&(
+            <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#9A5C08",
+              marginTop:6,textAlign:"center"}}>
+              ↑ Choose one to continue
+            </div>
+          )}
+        </div>
+
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{fontFamily:"Courier New, monospace",fontSize:7,
+            color:"#2E5070",lineHeight:1.5}}>
+            Proceeding confirms you have read and accepted all terms above.
+          </span>
+          <button
+            disabled={!hudsonMode}
+            style={{padding:"10px 24px",
+              background:hudsonMode?"#F0FFEE":"#E8EEF4",
+              border:hudsonMode?"2px solid #9A5C08":"2px solid #A0B0C0",
+              borderRadius:4,
+              color:hudsonMode?"#9A5C08":"#8090A0",
+              cursor:hudsonMode?"pointer":"not-allowed",
+              fontSize:10,fontFamily:"Courier New, monospace",
+              letterSpacing:1,fontWeight:"bold",flexShrink:0,marginLeft:16}}
+            onClick={()=>{if(hudsonMode){setShowDisclaimer(false);setShowGuide(true);}}}>
+            I ACCEPT — READ THE GUIDE FIRST
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1812,7 +1991,7 @@ const DisclaimerModal = React.memo(function DisclaimerModal({showDisclaimer,setS
 const TuneModal = React.memo(function TuneModal() {
   const {
     showTuning,setShowTuning,activePreset,setActivePreset,customConfig,setCustomConfig,
-    userKappa,setUserKappa,userAnchor,setUserAnchor,
+    userKappa,setUserKappa,userAnchor,setUserAnchor,hudsonMode,setHudsonMode,
     featKalman,setFeatKalman,featGARCH,setFeatGARCH,featSDE,setFeatSDE,
     featRAG,setFeatRAG,featPipe,setFeatPipe,featMute,setFeatMute,featGate,setFeatGate,
     featBSig,setFeatBSig,featHSig,setFeatHSig,featPrune,setFeatPrune,featZeroDrift,setFeatZeroDrift,
@@ -1832,6 +2011,8 @@ const TuneModal = React.memo(function TuneModal() {
     showMhtStudy,setShowMhtStudy,mhtPsi,setMhtPsi,mhtKappa,setMhtKappa,mhtTau,setMhtTau,
     showPoole,setShowPoole,pooleBirth1,setPooleBirth1,pooleBirth2,setPooleBirth2,
     pooleSurv1,setPooleSurv1,pooleSurv2,setPooleSurv2,pooleGen,setPooleGen,caPassRate,setCaPassRate,
+    showIntegrityFloor,setShowIntegrityFloor,featIntegrityFloor,setFeatIntegrityFloor,
+    integrityThreshold,setIntegrityThreshold,integrityBreachCount,
     mhtGamma,setMhtGamma,mhtCap,setMhtCap,mhtAlpha,setMhtAlpha,mhtBeta,setMhtBeta,mhtSigma,setMhtSigma,
     userRailsEnabled,setUserRailsEnabled,
     userCustomRails,setUserCustomRails,sdeModel,setSdeModel,
@@ -2353,6 +2534,7 @@ const TuneModal = React.memo(function TuneModal() {
                 ["Stability Panel", featZeroDrift,    ()=>setFeatZeroDrift(p=>!p),    "#906000","Convergence sidebar panel"],
                 ["Edit Constants",  showConstEditor,  ()=>setShowConstEditor(p=>!p),  "#9A5C08","Modify framework constants"],
                 ["MHT Study",       showMhtStudy,     ()=>setShowMhtStudy(p=>!p),      "#1E6A8A","Metatron-Hudson Theory SDE"],
+                ["Integrity Floor",  showIntegrityFloor, ()=>setShowIntegrityFloor(p=>!p), "#4828A0","Hydrogen floor integrity detection"],
               ].map(([label,val,toggle,col,note])=>(
                 <div key={label} style={{display:"flex",alignItems:"center",gap:8,
                   padding:"6px 10px",borderRadius:4,
@@ -2470,12 +2652,22 @@ const TuneModal = React.memo(function TuneModal() {
           {showConstEditor&&(
             <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:14}}>
               <div style={{fontFamily:"Courier New,monospace",fontSize:9,color:"#9A5C08",
-                letterSpacing:2,marginBottom:8}}>FRAMEWORK CONSTANTS</div>
-              <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#8A4000",
-                marginBottom:10}}>Modifying these produces results outside the validated framework.</div>
+                letterSpacing:2,marginBottom:4}}>FRAMEWORK CONSTANTS</div>
+              <div style={{fontFamily:"Courier New,monospace",fontSize:7,lineHeight:1.7,
+                marginBottom:10,padding:"6px 10px",borderRadius:3,
+                background:hudsonMode==="hudson"?"#EEFAF4":"#FFF8EE",
+                border:hudsonMode==="hudson"?"1px solid #1A5C1A44":"1px solid #E8A03044",
+                color:hudsonMode==="hudson"?"#1A5C1A":"#8A4000"}}>
+                {hudsonMode==="hudson"
+                  ?"HUDSON FRAMEWORK ACTIVE — κ=0.444 is the validated default. Modify only if you understand the implications."
+                  :"STANDARD MODE — κ=0.500 neutral OU damping. Tune freely 0.00–5.00. No framework claims."}
+              </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                 {[
-                  ["κ (damping)","Default 0.444",userKappa,setUserKappa,0.10,2.00,0.001,KAPPA],
+                  ["κ (damping)",
+                   hudsonMode==="hudson"?"Hudson default: 0.444":"Standard default: 0.500",
+                   userKappa,setUserKappa,0.00,5.00,0.001,
+                   hudsonMode==="hudson"?KAPPA:0.5],
                   ["Stability Anchor","Default 623.81",userAnchor,setUserAnchor,100,2000,0.01,RESONANCE_ANCHOR],
                 ].map(([label,note,val,setter,min,max,step,def])=>(
                   <div key={label} style={{padding:"8px 10px",borderRadius:4,
@@ -2484,17 +2676,117 @@ const TuneModal = React.memo(function TuneModal() {
                     <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#607080",marginBottom:5}}>{note}</div>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       <input type="number" min={min} max={max} step={step} value={val}
-                        onChange={e=>setter(+e.target.value)}
+                        onChange={e=>{
+                          const v=parseFloat(e.target.value);
+                          if (!isNaN(v)&&v>=min&&v<=max) setter(v);
+                        }}
                         style={{flex:1,background:"#EEF2F7",border:"1px solid #C0D0E4",
                           borderRadius:3,color:"#0E2A5A",padding:"3px 8px",
                           fontFamily:"Courier New,monospace",fontSize:10}}/>
                       <button onClick={()=>setter(def)}
                         style={{padding:"3px 8px",background:"transparent",
                           border:"1px solid #2A4060",borderRadius:3,color:"#1E3C5C",
-                          cursor:"pointer",fontSize:7,fontFamily:"Courier New,monospace"}}>RESET</button>
+                          cursor:"pointer",fontSize:7,fontFamily:"Courier New,monospace"}}>↺ RESET</button>
+                    </div>
+                    <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#2E5070",marginTop:3}}>
+                      {label==="κ (damping)"?`Range 0.00–5.00 · damping λ=${(1/(1+(val||0))).toFixed(4)}`:`Range 100–2000 Hz`}
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── INTEGRITY FLOOR — Trumble/CLS hydrogen floor concept ── */}
+          {showIntegrityFloor&&(
+            <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:14}}>
+              <div style={{fontFamily:"Courier New,monospace",fontSize:9,color:"#4828A0",
+                letterSpacing:2,marginBottom:6}}>INTEGRITY FLOOR — COHERENCE BOND THRESHOLD</div>
+              <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#2E5070",
+                lineHeight:1.8,marginBottom:10,padding:"8px 10px",
+                background:"#F4F0FF",borderRadius:3,border:"1px solid #4828A044"}}>
+                Two different things can go wrong in an AI conversation.<br/>
+                <strong style={{color:"#9A5C08"}}>DRIFT</strong> — the AI is losing the thread. Recoverable. The harness can pull it back.<br/>
+                <strong style={{color:"#C81030"}}>INTEGRITY BREACH</strong> — the coherence bond is gone. Reset, not repair.<br/><br/>
+                Inspired by the hydrogen ionization floor (13.59844 eV) from Trumble's
+                Macro-Ratchet Framework (2026) — the principle that every system has a
+                minimum threshold below which it doesn't drift, it dissolves.<br/><br/>
+                When the coherence score falls below this threshold, an INTEGRITY_BREACH
+                event is logged and the pipe directive changes from "consolidate" to
+                "session integrity compromised — consider reset."
+              </div>
+
+              {/* Detection toggle */}
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10,
+                padding:"8px 10px",borderRadius:4,
+                background:featIntegrityFloor?"#F0EEFF":"#F4F4F8",
+                border:`1px solid ${featIntegrityFloor?"#4828A044":"#CDD8E8"}`}}>
+                <button onClick={()=>setFeatIntegrityFloor(p=>!p)} style={{
+                  width:28,height:16,borderRadius:8,border:"none",cursor:"pointer",
+                  background:featIntegrityFloor?"#4828A0":"#B4C4D4",transition:"background .2s",flexShrink:0}}>
+                  <div style={{width:12,height:12,borderRadius:"50%",background:"#fff",
+                    margin:"2px",marginLeft:featIntegrityFloor?14:2,transition:"margin .2s"}}/>
+                </button>
+                <div>
+                  <div style={{fontFamily:"Courier New,monospace",fontSize:8,
+                    color:featIntegrityFloor?"#4828A0":"#2E5070",letterSpacing:1}}>
+                    {featIntegrityFloor?"DETECTION ACTIVE":"DETECTION OFF"}
+                  </div>
+                  <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#607080"}}>
+                    Log INTEGRITY_BREACH events and change pipe directive when score falls below threshold
+                  </div>
+                </div>
+              </div>
+
+              {/* Threshold tuner */}
+              <div style={{padding:"8px 10px",borderRadius:4,background:"#F4F0FF",
+                border:"1px solid #4828A033",marginBottom:8}}>
+                <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#4828A0",
+                  marginBottom:4,letterSpacing:1}}>INTEGRITY THRESHOLD</div>
+                <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#607080",marginBottom:6}}>
+                  Score below this = INTEGRITY BREACH (not drift). Default 0.15. Range 0.05–0.40.
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <input type="number" min={0.05} max={0.40} step={0.01}
+                    value={integrityThreshold}
+                    onChange={e=>{
+                      const v=parseFloat(e.target.value);
+                      if(!isNaN(v)&&v>=0.05&&v<=0.40) setIntegrityThreshold(v);
+                    }}
+                    style={{width:70,fontFamily:"Courier New,monospace",fontSize:10,
+                      color:"#4828A0",background:"#EEEEFF",border:"1px solid #4828A044",
+                      borderRadius:3,padding:"3px 8px",textAlign:"right"}}/>
+                  <button onClick={()=>setIntegrityThreshold(0.15)}
+                    style={{padding:"3px 8px",background:"transparent",
+                      border:"1px solid #4828A0",borderRadius:3,color:"#4828A0",
+                      cursor:"pointer",fontSize:7,fontFamily:"Courier New,monospace"}}>
+                    ↺ RESET
+                  </button>
+                  <span style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#4A5090"}}>
+                    Current floor: {integrityThreshold.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Breach counter */}
+              {featIntegrityFloor&&(
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                  padding:"6px 10px",borderRadius:4,
+                  background:integrityBreachCount>0?"#FFF0FF":"#F4F0FF",
+                  border:`1px solid ${integrityBreachCount>0?"#C81030":"#4828A033"}`}}>
+                  <span style={{fontFamily:"Courier New,monospace",fontSize:8,
+                    color:"#4828A0",letterSpacing:1}}>INTEGRITY BREACHES THIS SESSION</span>
+                  <span style={{fontFamily:"Courier New,monospace",fontSize:14,
+                    color:integrityBreachCount>0?"#C81030":"#178040",fontWeight:"bold"}}>
+                    {integrityBreachCount}
+                  </span>
+                </div>
+              )}
+
+              <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#607080",
+                marginTop:8,lineHeight:1.6}}>
+                Reference: Trumble, R.T. (2026). The Macro-Ratchet Framework. Zenodo.
+                Concept: hydrogen ionization floor 13.59844 eV (NIST). Study use only.
               </div>
             </div>
           )}
@@ -2694,7 +2986,7 @@ const TuneModal = React.memo(function TuneModal() {
         display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#2E5070",letterSpacing:1}}>
-          ACTIVE: {PRESETS[activePreset]?.label??activePreset} · V1.5.39
+          ACTIVE: {PRESETS[activePreset]?.label??activePreset} · V1.5.42
         </span>
         <button onClick={()=>setShowTuning(false)}
           style={{padding:"4px 14px",background:"#EEF8F2",
@@ -3162,7 +3454,7 @@ const BookmarksModal = React.memo(function BookmarksModal() {
         </span>
         <span style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#2E5070",letterSpacing:1}}>
-          V1.5.39 © HUDSON &amp; PERRY
+          V1.5.42 © HUDSON &amp; PERRY
         </span>
       </div>
     </div>
@@ -3382,6 +3674,7 @@ export default function HudsonPerryDriftV1() {
   const [isLoading,       setIsLoading]       = useState(false);
   const [harnessMode,     setHarnessMode]     = useState("audit");
   const [kalmanState,     setKalmanState]     = useState({x:0,P:.05});
+  const [kalmanHistory,   setKalmanHistory]   = useState([]); // V1.5.42: innovation whiteness check
   const [coherenceData,   setCoherenceData]   = useState([]);
   const [driftCount,      setDriftCount]      = useState(0);
   const [turnCount,       setTurnCount]       = useState(0);
@@ -3443,9 +3736,10 @@ export default function HudsonPerryDriftV1() {
   const [featPrune,       setFeatPrune]       = useState(true);
   const [featZeroDrift,   setFeatZeroDrift]   = useState(false); // Advanced tab only — default off
   // V1.5.0: Adjustable Hudson Constants — defaults preserved, warning shown when changed
-  const [userKappa,       setUserKappa]       = useState(KAPPA);         // default 0.444
-  const [userAnchor,      setUserAnchor]      = useState(RESONANCE_ANCHOR); // default 623.81
-  const [showDisclaimer,  setShowDisclaimer]  = useState(true); // R&D disclaimer on load
+  const [userKappa,       setUserKappa]       = useState(KAPPA);
+  const [userAnchor,      setUserAnchor]      = useState(RESONANCE_ANCHOR);
+  const [hudsonMode,      setHudsonMode]      = useState(null);
+  const [showDisclaimer,  setShowDisclaimer]  = useState(true);
   // V1.5.0: Session UUID — generated once per mount, stamped on all exports
   const [sessionId] = useState(()=>`HP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`);
   const [tokenEstimate,   setTokenEstimate]   = useState(0);
@@ -3506,6 +3800,12 @@ export default function HudsonPerryDriftV1() {
   const [pooleSurv2,   setPooleSurv2]   = useState(9);
   const [pooleGen,     setPooleGen]     = useState(0);
   const [caPassRate,   setCaPassRate]   = useState(null);
+  // V1.5.42: Integrity Floor (Trumble/CLS hydrogen floor concept)
+  // showIntegrityFloor = panel visible, featIntegrityFloor = detection active
+  const [showIntegrityFloor,   setShowIntegrityFloor]   = useState(false);
+  const [featIntegrityFloor,   setFeatIntegrityFloor]   = useState(false);
+  const [integrityThreshold,   setIntegrityThreshold]   = useState(0.15);
+  const [integrityBreachCount, setIntegrityBreachCount] = useState(0);
   const [userRailsEnabled,  setUserRailsEnabled]  = useState(false);
   const [userCustomRails,   setUserCustomRails]   = useState("");
   const [sdeModel,          setSdeModel]          = useState("hpdl"); // "hpdl"|"cir"|"heston"
@@ -3562,6 +3862,7 @@ export default function HudsonPerryDriftV1() {
         if (p.customConfig)            setCustomConfig(p.customConfig);
         if (p.userKappa!=null)         setUserKappa(p.userKappa);
         if (p.userAnchor!=null)        setUserAnchor(p.userAnchor);
+        if (p.hudsonMode!=null)        setHudsonMode(p.hudsonMode);
         if (p.featKalman!=null)        setFeatKalman(p.featKalman);
         if (p.featGARCH!=null)         setFeatGARCH(p.featGARCH);
         if (p.featSDE!=null)           setFeatSDE(p.featSDE);
@@ -3604,6 +3905,9 @@ export default function HudsonPerryDriftV1() {
         if (p.showConstEditor!=null)     setShowConstEditor(p.showConstEditor);
         if (p.showMhtStudy!=null)        setShowMhtStudy(p.showMhtStudy);
         if (p.showPoole!=null)           setShowPoole(p.showPoole);
+        if (p.showIntegrityFloor!=null)  setShowIntegrityFloor(p.showIntegrityFloor);
+        if (p.featIntegrityFloor!=null)  setFeatIntegrityFloor(p.featIntegrityFloor);
+        if (p.integrityThreshold!=null)  setIntegrityThreshold(p.integrityThreshold);
         if (p.pooleBirth1!=null)         setPooleBirth1(p.pooleBirth1);
         if (p.pooleBirth2!=null)         setPooleBirth2(p.pooleBirth2);
         if (p.pooleSurv1!=null)          setPooleSurv1(p.pooleSurv1);
@@ -3665,7 +3969,7 @@ export default function HudsonPerryDriftV1() {
     (async()=>{
       try {
         await window.storage.set("hpdl_config", JSON.stringify({
-          harnessMode,activePreset,customConfig,userKappa,userAnchor,
+          harnessMode,activePreset,customConfig,userKappa,userAnchor,hudsonMode,
           featKalman,featGARCH,featSDE,featRAG,featPipe,
           featMute,featGate,featBSig,featHSig,featPrune,featZeroDrift,
           adaptiveSigmaOn,adaptationRate,adaptedSigma,
@@ -3678,13 +3982,14 @@ export default function HudsonPerryDriftV1() {
           postAuditThresh,showSdePaths,pathOpacity,
           // Advanced Tab
           advancedUnlocked,showSdeConfig,showRailsConfig,showConstEditor,showMhtStudy,showPoole,caPassRate,pooleBirth1,pooleBirth2,pooleSurv1,pooleSurv2,pooleGen,
+          showIntegrityFloor,featIntegrityFloor,integrityThreshold,
           mhtPsi,mhtKappa,mhtTau,mhtGamma,mhtCap,mhtAlpha,mhtBeta,mhtSigma,
           userRailsEnabled,userCustomRails,sdeModel,
           cirKappa,cirTheta,cirSigma,hestonKappa,hestonTheta,hestonSigma,hestonRho,hestonV0,
         }));
       } catch(e) { console.warn("hpdl: config save failed",e); }
     })();
-  },[harnessMode,activePreset,customConfig,userKappa,userAnchor,
+  },[harnessMode,activePreset,customConfig,userKappa,userAnchor,hudsonMode,
      featKalman,featGARCH,featSDE,featRAG,featPipe,
      featMute,featGate,featBSig,featHSig,featPrune,featZeroDrift,
      adaptiveSigmaOn,adaptationRate,adaptedSigma,
@@ -3695,6 +4000,7 @@ export default function HudsonPerryDriftV1() {
      postAuditThresh,showSdePaths,pathOpacity,
      advancedUnlocked,showSdeConfig,showRailsConfig,showConstEditor,showMhtStudy,showPoole,
      caPassRate,pooleBirth1,pooleBirth2,pooleSurv1,pooleSurv2,pooleGen,
+     showIntegrityFloor,featIntegrityFloor,integrityThreshold,
      mhtPsi,mhtKappa,mhtTau,mhtGamma,mhtCap,mhtAlpha,mhtBeta,mhtSigma,
      userRailsEnabled,userCustomRails,sdeModel,
      cirKappa,cirTheta,cirSigma,hestonKappa,hestonTheta,hestonSigma,hestonRho,hestonV0]);
@@ -4107,6 +4413,7 @@ export default function HudsonPerryDriftV1() {
             newKalman=kalmanStep(newKalman,postAuditScore,t_k,liveSDEParams,mathKalmanR,mathKalmanSigP,smoothedVar??0);
           }
           setKalmanState(newKalman);
+          setKalmanHistory(h=>[...h,newKalman].slice(-20)); // V1.5.42: keep last 20 for innovation check
         }
         setScoreHistory(newHist);
         newVar=featGARCH
@@ -4185,11 +4492,65 @@ export default function HudsonPerryDriftV1() {
         setDriftCount(c=>Math.max(0,c-1));
       }
 
+      // ── V1.5.42: EWMA trend, anchor distance, truncation, innovation, hedge, efficiency ──
+      const ewmaResult = computeEWMATrend(newHist);
+      const anchorDist = computeAnchorDistance(content_raw, finalMessages);
+      const truncated  = detectTruncation(content_raw);
+      const hedgeResult = detectHedgeDensity(content_raw);
+      const innovAC    = computeInnovationAutocorrelation(newHist, kalmanHistory);
+      const effRatio   = computeEfficiencyRatio(content_raw, hallucinationAssessment.entropy??0);
 
-      const newCData=[...currentCData,{raw:rawScore,kalman:newKalman.x,harnessActive:drifted,mode:newMode,smoothedVar:newVar,hallucinationFlag,hallucinationSignals:hallucinationAssessment.signals,sourceScore:hallucinationAssessment.sourceScore,behavioralFlag,behavioralSignals:behavioralAssessment.signals,postAuditScore,quietFail}];
+      // Truncation fires as B-signal (model didn't complete answer)
+      if (truncated) {
+        behavioralAssessment.signals.push({type:"response_truncation",detail:"Response ends abruptly — possible token limit or context exhaustion"});
+        behavioralAssessment.flagged = true;
+      }
+      // High hedge density fires as H-signal (excessive epistemic hedging)
+      if (hedgeResult.count >= 3) {
+        hallucinationAssessment.signals.push(`excessive hedging (${hedgeResult.count} markers, ${hedgeResult.density.toFixed(1)}/100 words) — possible low-confidence response`);
+        hallucinationAssessment.flagged = true;
+      }
+      // Anchor drift fires as event log entry (slow-burn session drift)
+      if (anchorDist !== null && anchorDist < 0.12 && turn >= 6) {
+        setEventLog(p=>[...p,{timestamp:now,turn,type:"anchor_drift",
+          anchor_similarity:anchorDist,note:`Session has drifted far from opening context (anchor sim=${anchorDist.toFixed(3)})`}]);
+      }
+      // Innovation autocorrelation — log warning when Kalman model is misspecified
+      if (innovAC !== null && Math.abs(innovAC) > 0.5) {
+        setEventLog(p=>[...p,{timestamp:now,turn,type:"kalman_misspec",
+          autocorrelation:innovAC,note:`Innovation sequence autocorrelation=${innovAC.toFixed(3)} — Kalman process model may be misspecified`}]);
+      }
+
+      const newCData=[...currentCData,{
+        raw:rawScore,kalman:newKalman.x,harnessActive:drifted,mode:newMode,
+        smoothedVar:newVar,hallucinationFlag:hallucinationAssessment.flagged,
+        hallucinationSignals:hallucinationAssessment.signals,
+        sourceScore:hallucinationAssessment.sourceScore,
+        behavioralFlag:behavioralAssessment.flagged,
+        behavioralSignals:behavioralAssessment.signals,
+        postAuditScore,quietFail,
+        // V1.5.42 new fields
+        ewma:ewmaResult.ewma, trend:ewmaResult.trend, momentum:ewmaResult.momentum,
+        anchorDist, truncated, hedgeCount:hedgeResult.count,
+        innovAC, effRatio,
+        entropy:hallucinationAssessment.entropy??null,
+        vocabGrowth:hallucinationAssessment.vocabGrowth??null,
+      }];
       setCoherenceData(newCData);
 
-      // P8: finalDriftCount moved here — before meta-harness — so mhHealth can reference it
+      // ── V1.5.42: Integrity Floor detection ────────────────────
+      // Separate category from drift: score below integrityThreshold = coherence bond broken.
+      // Drift = wandering (recoverable). Integrity breach = dissolved (reset needed).
+      if (featIntegrityFloor && turn >= 2 && rawScore < integrityThreshold) {
+        setIntegrityBreachCount(c=>c+1);
+        setEventLog(p=>[...p,{
+          timestamp:now, turn,
+          type:"INTEGRITY_BREACH",
+          coherence_score:rawScore,
+          threshold:integrityThreshold,
+          note:`Coherence bond dissolved (score=${rawScore.toFixed(3)} < floor=${integrityThreshold.toFixed(3)}) — session integrity compromised. Consider reset.`,
+        }]);
+      }
       // directly rather than re-deriving driftCount+1 independently.
       const finalDriftCount=drifted
         ?driftCount+1
@@ -4352,6 +4713,7 @@ export default function HudsonPerryDriftV1() {
     setRagCache([]);setRagHits(0);setEventLog([]);setErrorLog([]);
     setScoreHistory([]);setSmoothedVar(null);setCalmStreak(0);
     setLock888Achieved(false);setLastPipeState(null);
+    setIntegrityBreachCount(0);setKalmanHistory([]);
     setMuteModeActive(false);setDriftGateActive(false);
     setTurnSnapshots([]);setRewindTurn(null);
     setBookmarks([]);setShowBookmarks(false);
@@ -4481,7 +4843,7 @@ export default function HudsonPerryDriftV1() {
   // Placing these before their deps causes "cannot access before initialization".
   const tuneCtxValue = useMemo(()=>({
     showTuning,setShowTuning,activePreset,setActivePreset,customConfig,setCustomConfig,
-    userKappa,setUserKappa,userAnchor,setUserAnchor,
+    userKappa,setUserKappa,userAnchor,setUserAnchor,hudsonMode,setHudsonMode,
     featKalman,setFeatKalman,featGARCH,setFeatGARCH,featSDE,setFeatSDE,
     featRAG,setFeatRAG,featPipe,setFeatPipe,featMute,setFeatMute,featGate,setFeatGate,
     featBSig,setFeatBSig,featHSig,setFeatHSig,featPrune,setFeatPrune,featZeroDrift,setFeatZeroDrift,
@@ -4508,7 +4870,7 @@ export default function HudsonPerryDriftV1() {
     cirKappa,setCirKappa,cirTheta,setCirTheta,cirSigma,setCirSigma,
     hestonKappa,setHestonKappa,hestonTheta,setHestonTheta,
     hestonSigma,setHestonSigma,hestonRho,setHestonRho,hestonV0,setHestonV0,
-  }),[showTuning,activePreset,customConfig,userKappa,userAnchor,
+  }),[showTuning,activePreset,customConfig,userKappa,userAnchor,hudsonMode,
       featKalman,featGARCH,featSDE,featRAG,featPipe,featMute,featGate,
       featBSig,featHSig,featPrune,featZeroDrift,nPaths,postAuditMode,postAuditThresh,
       adaptiveSigmaOn,adaptedSigma,adaptationRate,
@@ -4520,6 +4882,7 @@ export default function HudsonPerryDriftV1() {
       advancedUnlocked,showSdeConfig,showRailsConfig,showConstEditor,
       showMhtStudy,mhtPsi,mhtKappa,mhtTau,mhtGamma,mhtCap,mhtAlpha,mhtBeta,mhtSigma,
       showPoole,pooleBirth1,pooleBirth2,pooleSurv1,pooleSurv2,pooleGen,caPassRate,
+      showIntegrityFloor,featIntegrityFloor,integrityThreshold,integrityBreachCount,
       userRailsEnabled,userCustomRails,sdeModel,
       cirKappa,cirTheta,cirSigma,hestonKappa,hestonTheta,hestonSigma,hestonRho,hestonV0]);
 
@@ -4603,11 +4966,12 @@ export default function HudsonPerryDriftV1() {
     userKappa,userAnchor,activePreset,
       featKalman,featGARCH,featSDE,featRAG,featPipe,featMute,
       featGate,featBSig,featHSig,featPrune,featZeroDrift,
-      nPaths,postAuditMode}),
+      nPaths,postAuditMode,featIntegrityFloor,integrityThreshold}),
   [kalmanState,harnessMode,driftCount,turnCount,lastScore,coherenceData,
    ragCache,smoothedVar,calmStreak,lock888Achieved,userKappa,userAnchor,
    activePreset,featKalman,featGARCH,featSDE,featRAG,featPipe,featMute,
-   featGate,featBSig,featHSig,featPrune,featZeroDrift,nPaths,postAuditMode]);
+   featGate,featBSig,featHSig,featPrune,featZeroDrift,nPaths,postAuditMode,
+   featIntegrityFloor,integrityThreshold]);
 
   return (
     <TuneCtx.Provider value={tuneCtxValue}>
@@ -4629,9 +4993,9 @@ export default function HudsonPerryDriftV1() {
       {/* HEADER */}
       <div style={S.header}>
         <div>
-          <div style={S.title}>ARCHITECT — UNIVERSAL COHERENCE ENGINE V1.5.39</div>
+          <div style={S.title}>ARCHITECT — UNIVERSAL COHERENCE ENGINE V1.5.42</div>
           <div style={S.subtitle}>
-            © HUDSON &amp; PERRY RESEARCH · MUTE:{featMute?"ON":"OFF"} · GATE:{featGate?"ON":"OFF"} · PIPE:{featPipe?"ON":"OFF"} · REWIND:ON · V1.5.39
+            © HUDSON &amp; PERRY RESEARCH · MUTE:{featMute?"ON":"OFF"} · GATE:{featGate?"ON":"OFF"} · PIPE:{featPipe?"ON":"OFF"} · REWIND:ON · V1.5.42
           </div>
           <div style={{display:"flex",gap:10,marginTop:3}}>
             <a href="https://x.com/RaccoonStampede" target="_blank" rel="noreferrer"
@@ -4822,7 +5186,7 @@ export default function HudsonPerryDriftV1() {
         <div style={{background:"#F8FAFC",borderBottom:"1px solid #1EAAAA44",padding:"12px 20px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <span style={{...S.sectionTitle,marginBottom:0,color:"#0A7878"}}>
-              MISSION PROTOCOL — HUDSON &amp; PERRY ARCHITECT V1.5.39
+              MISSION PROTOCOL — HUDSON &amp; PERRY ARCHITECT V1.5.42
             </span>
             <button style={{...S.exportBtn,background:copied?"#E4F4F4":"transparent",
               color:copied?"#178040":"#0A7878"}} onClick={handleCopyExport}>
@@ -4879,7 +5243,7 @@ export default function HudsonPerryDriftV1() {
               <div style={{margin:"auto",textAlign:"center",
                 fontFamily:"Courier New, monospace",fontSize:11,lineHeight:2}}>
                 <div style={{fontSize:28,marginBottom:12,opacity:.3}}>⬡</div>
-                <div style={{opacity:.5,marginBottom:4}}>ARCHITECT — UNIVERSAL COHERENCE ENGINE V1.5.39</div>
+                <div style={{opacity:.5,marginBottom:4}}>ARCHITECT — UNIVERSAL COHERENCE ENGINE V1.5.42</div>
                 <div style={{fontSize:9,letterSpacing:2,opacity:.4}}>
                   SDE · KALMAN · GARCH · TF-IDF · JSD · RAG · PIPE · MUTE · GATE · REWIND · ARCHITECT
                 </div>
@@ -5104,6 +5468,11 @@ export default function HudsonPerryDriftV1() {
                 ):null;
               })()}
               {[
+                ["κ",
+                  hudsonMode==="standard"
+                    ?(userKappa??0.5).toFixed(3)+" STANDARD"
+                    :(userKappa??0.444).toFixed(3)+" HUDSON",
+                  hudsonMode==="standard"?"#178040":"#0E2A5A"],
                 ["Damping",  DAMPING.toFixed(4),"#906000"],
                 ["γ_h",          currentMode.gamma_h,               currentMode.color],
                 ["cap_eff",      cap_eff.toFixed(8),                  null],
@@ -5161,6 +5530,29 @@ export default function HudsonPerryDriftV1() {
                   <div style={{marginTop:4,height:4,background:"#1A5C1A22",borderRadius:2}}>
                     <div style={{height:"100%",width:(caPassRate*100).toFixed(1)+"%",
                       background:caPassRate>=0.875?"#1A5C1A":"#9A5C08",borderRadius:2}}/>
+                  </div>
+                </div>
+              )}
+              {/* Integrity Floor breach indicator */}
+              {featIntegrityFloor&&(
+                <div style={{marginBottom:8,padding:"6px 10px",borderRadius:4,
+                  background:integrityBreachCount>0?"#FFF0FF":"#F4F0FF",
+                  border:`1px solid ${integrityBreachCount>0?"#C8103044":"#4828A033"}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontFamily:"Courier New,monospace",fontSize:8,
+                      color:integrityBreachCount>0?"#C81030":"#4828A0",letterSpacing:1}}>
+                      INTEGRITY FLOOR
+                    </span>
+                    <span style={{fontFamily:"Courier New,monospace",fontSize:11,
+                      color:integrityBreachCount>0?"#C81030":"#178040",fontWeight:"bold"}}>
+                      {integrityBreachCount>0
+                        ?`${integrityBreachCount} BREACH${integrityBreachCount>1?"ES":""}`
+                        :"INTACT"}
+                    </span>
+                  </div>
+                  <div style={{fontFamily:"Courier New,monospace",fontSize:7,
+                    color:"#607080",marginTop:2}}>
+                    floor={integrityThreshold.toFixed(2)} · {integrityBreachCount>0?"reset recommended":"coherence bond holding"}
                   </div>
                 </div>
               )}
@@ -5411,6 +5803,10 @@ export default function HudsonPerryDriftV1() {
       <DisclaimerModal
         showDisclaimer={showDisclaimer}
         setShowDisclaimer={setShowDisclaimer}
+        setShowGuide={setShowGuide}
+        hudsonMode={hudsonMode}
+        setHudsonMode={setHudsonMode}
+        setUserKappa={setUserKappa}/>
         setShowGuide={setShowGuide}
       />
 
