@@ -1,10 +1,10 @@
 # ARCHITECT — Universal Coherence Engine
 
-## Full-stack inference-time LLM stability layer
+## Full-stack inference-time LLM stability and intelligence layer
 
-**V2.0** · © 2026 Hudson & Perry Research
-**Authors:** David Hudson ([@RaccoonStampede](https://x.com/RaccoonStampede)) & David Perry ([@Prosperous727](https://x.com/Prosperous727))
-**License:** MIT
+**V2.1** · © 2026 Hudson & Perry Research
+**Authors:** David Hudson ([@RaccoonStampede](https://x.com/RaccoonStampede)) · David Perry ([@Prosperous727](https://x.com/Prosperous727))
+**License:** MIT · [Live Demo](https://architect-universal-coherence-engin.vercel.app/)
 
 > ⚠ RESEARCH & DEVELOPMENT — NOT FOR CLINICAL OR LEGAL USE.
 > All outputs are mathematical proxy indicators. No warranty expressed or implied.
@@ -19,12 +19,11 @@ It runs two ways depending on how you use it.
 
 ## ▶ Option 1 — Paste into Claude (instant, no setup)
 
-**1. Download `ARCHITECT.jsx` from the root of this repo**
+**1.** Download `ARCHITECT.jsx` from the root of this repo
 
-**2. Open [claude.ai](https://claude.ai) and start a new conversation**
+**2.** Open [claude.ai](https://claude.ai) and start a new conversation
 
-**3. Paste this:**
-
+**3.** Paste this:
 ```
 Create an artifact from this file. Run it exactly as-is.
 [paste the full contents of ARCHITECT.jsx]
@@ -32,31 +31,31 @@ Create an artifact from this file. Run it exactly as-is.
 
 Works immediately. No account, no server, no install.
 
-**What you get:** Full ARCHITECT with TF-IDF + JSD coherence scoring, Kalman filter, GARCH, SDE bands, all signal detection, all presets, all sidebar features, session rewind, research export.
+**What you get:** Full ARCHITECT with coherence scoring, Kalman filter, GARCH, SDE bands, all signal detection, all presets, AutoTune, feedback loop, reflexive analysis, knowledge anchors, display preferences, session rewind, research export.
 
 ---
 
-## ▶ Option 2 — Deploy on Vercel (full V2.0, any browser)
+## ▶ Option 2 — Deploy on Vercel (V2.1, any browser)
 
 **Live demo:** [architect-universal-coherence-engin.vercel.app](https://architect-universal-coherence-engin.vercel.app/)
 
-The same `ARCHITECT.jsx` is used here — it lives at `components/ARCHITECT.jsx` inside the Next.js project. Vercel activates the extra V2.0 features that require a server and Web Worker.
+The same `ARCHITECT.jsx` lives at `components/ARCHITECT.jsx` inside the Next.js project. Vercel activates the extra capabilities that require a server and Web Worker.
 
-**What you get on top of Option 1:**
-- **Semantic coherence scoring** — all-MiniLM-L6-v2 neural embeddings replace TF-IDF. Meaning-based, not word-based. Loads once (~23MB), cached in your browser forever after.
-- **Unscented Kalman Filter (UKF)** — handles nonlinear drift dynamics more accurately
-- **Multi-provider** — use Anthropic, OpenAI, or Grok API keys
-- **Key persistence** — your API key saved in your browser. Type it once, remembered.
+**Additional features on Vercel:**
+- **Semantic coherence scoring** — all-MiniLM-L6-v2 ONNX neural embeddings (~23MB, cached in IndexedDB). Meaning-based, not word-based.
+- **Unscented Kalman Filter (UKF)** — sigma-point propagation handles nonlinear drift dynamics
+- **Multi-provider** — Anthropic, OpenAI, or Grok. Your key, your choice.
+- **Key persistence** — API key saved to browser. Type it once.
 - **Works on any device** — no Claude account needed
 
 ### Deploy your own instance
 
 1. Fork this repo
 2. Go to [vercel.com](https://vercel.com) → **Add New Project** → import your fork
-3. Vercel auto-detects Next.js — tap **Deploy**
+3. Vercel auto-detects Next.js → tap **Deploy**
 4. No environment variables needed — users provide their own API keys
 
-### V2.0 project structure
+### Project structure
 
 ```
 ARCHITECT.jsx              ← root copy — paste this into Claude
@@ -65,9 +64,9 @@ components/
 pages/
   index.tsx                ← mounts the app
   api/
-    proxy.ts               ← API proxy (Anthropic · OpenAI · Grok)
+    proxy.ts               ← multi-provider proxy (Anthropic · OpenAI · Grok)
 public/
-  embedder.worker.js       ← neural embedding worker
+  embedder.worker.js       ← neural embedding Web Worker
 sdk/
   *.ts                     ← TypeScript math library
 ```
@@ -76,26 +75,34 @@ sdk/
 
 ## What ARCHITECT does
 
-Per-turn coherence scoring, Kalman-smoothed trajectory tracking, GARCH(1,1) variance modeling with jump-diffusion, Monte Carlo SDE uncertainty bands, post-audit loop, behavioral and hallucination signal detection, EWMA trend tracking, semantic anchor distance monitoring, Integrity Floor breach detection, and automatic corrective pipe injection — running client-side in Option 1, or as a full production deployment in Option 2.
+**Core engine:** Per-turn coherence scoring → Kalman-smoothed trajectory → GARCH(1,1) variance modeling → Monte Carlo SDE uncertainty bands → pipe injection → post-audit loop → drift escalation → corrective directives.
+
+**V2.1 intelligence layer:** AutoTune selects optimal generation parameters per turn based on context detection. Feedback loop learns your preferences via EMA across sessions. Reflexive analysis sends session coherence data to the LLM and returns concrete configuration improvements. Knowledge anchors calibrate drift detection to your domain.
+
+**Signal detection:** 6 hallucination proxies (H-signals), 7 behavioral proxies (B-signals), EWMA trend tracking, semantic anchor distance monitoring, Integrity Floor breach detection.
 
 ---
 
-## Validated Features
+## Feature Comparison
 
 | Feature | Option 1 (Claude) | Option 2 (Vercel) |
-|---------|:-----------------:|:-----------------:|
-| TF-IDF + JSD coherence scoring | ✓ | ✓ (fallback) |
+|---|:---:|:---:|
+| TF-IDF + JSD coherence scoring | ✓ | ✓ fallback |
 | Semantic embeddings (all-MiniLM-L6-v2) | — | ✓ |
 | Linear Kalman filter | ✓ | — |
 | Unscented Kalman Filter (UKF) | — | ✓ |
 | GARCH(1,1) + jump-diffusion | ✓ | ✓ |
 | Monte Carlo SDE bands | ✓ | ✓ |
 | EWMA + Anchor chart lines | ✓ | ✓ |
-| Momentum + Anchor dist sidebar | ✓ | ✓ |
-| Behavioral + hallucination detection | ✓ | ✓ |
+| AutoTune (per-turn context detection) | ✓ | ✓ |
+| Feedback loop (EMA learning) | ✓ | ✓ |
+| Reflexive session analysis | ✓ | ✓ |
+| Knowledge Anchors (domain calibration) | ✓ | ✓ |
+| Display preferences (theme, font, compact) | ✓ | ✓ |
+| H-signals + B-signals | ✓ | ✓ |
 | Session health, rewind, RAG | ✓ | ✓ |
-| Integrity Floor (V1.5.42) | ✓ | ✓ |
-| Framework Mode HUDSON/STANDARD | ✓ | ✓ |
+| Integrity Floor | ✓ | ✓ |
+| Framework Mode (HUDSON / STANDARD) | ✓ | ✓ |
 | Multi-provider (OpenAI, Grok) | — | ✓ |
 | API key persistence | — | ✓ |
 | Works without Claude account | — | ✓ |
@@ -105,7 +112,7 @@ Per-turn coherence scoring, Kalman-smoothed trajectory tracking, GARCH(1,1) vari
 ## Industry Presets
 
 | Preset | Dec / Cau / Calm | Best For |
-|--------|-----------------|----------|
+|---|---|---|
 | DEFAULT | 0.200 / 0.120 / 0.080 | General use |
 | TECHNICAL | 0.180 / 0.100 / 0.060 | Code, audits, engineering |
 | CREATIVE | 0.280 / 0.160 / 0.100 | Writing, brainstorming |
@@ -131,8 +138,6 @@ All behind **TUNE → ⚗ ADVANCED**. Labeled experimental.
 ---
 
 ## SDK (TypeScript)
-
-Math functions available as a standalone package. Files in `sdk/`.
 
 ```typescript
 import { computeCoherence, kalmanStep, updateSmoothedVariance,

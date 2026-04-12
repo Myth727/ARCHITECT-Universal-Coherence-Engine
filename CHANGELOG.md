@@ -3,6 +3,82 @@
 © 2026 Hudson & Perry Research
 𝕏 @RaccoonStampede (David Hudson) · 𝕏 @Prosperous727 (David Perry)
 
+## V2.1
+
+### AutoTune · Feedback Loop · Reflexive Analysis · Knowledge Anchors · Display Preferences · Compressed Pipe
+
+This is the first intelligence upgrade to ARCHITECT. Previous versions monitored and corrected. V2.1 optimizes, learns, and self-improves.
+
+**Step 1 — Compressed Pipe (60–70% fewer tokens)**
+
+The harness pipe injection that runs every turn was rewritten from verbose multi-line format to a compact single-line notation. Average session overhead drops from ~2,000 tokens to ~600 tokens with identical information content. The pipe key is injected once at session start so the model reads abbreviations correctly.
+
+Old format (~350 chars/turn):
+```
+[SYSTEM_INTERNAL — ARCHITECT PIPE | Turn 7]
+σ²=0.142000 | State=CAUTION
+Kalman x̂=0.8871 | P=0.00041
+...
+```
+New format (~95 chars/turn):
+```
+[A|t7|v=0.14200|st=CAU|kx=0.887|kp=0.0004|cl=2|dr=1|md=AUD|h=0|b=0]->CONSOLIDATE.persist-up.[/A]
+```
+
+**Step 2 — AutoTune (per-turn context detection)**
+
+Before each API call, ARCHITECT now detects the conversation context type (code / creative / analytical / conversational / chaotic) using pattern matching against the current message and recent history. It then selects optimal generation parameters for that context type and passes them to the proxy:
+
+- Code sessions: temperature 0.15, top_p 0.80 — precise, deterministic
+- Creative sessions: temperature 1.15, top_p 0.95 — high entropy, diverse
+- Analytical sessions: temperature 0.40, top_p 0.88 — structured but not rigid
+- Conversational: temperature 0.75, top_p 0.90 — natural and fluid
+- Chaotic: temperature 1.70, top_p 0.99 — maximum entropy
+
+Low-confidence detections blend with the conversational baseline proportionally. `proxy.ts` updated to forward temperature and top_p to all three providers with clamping to safe ranges.
+
+**Step 3 — Feedback Loop (EMA learning)**
+
+Each assistant response now shows 👍 / 👎 buttons. Rating a response records the AutoTune parameters that produced it alongside the context type and passes both through an Exponential Moving Average:
+
+- Positive ratings push the EMA of that context type's parameters toward what worked
+- Negative ratings push it away
+- Adjustments activate after 3 samples, reach up to 50% influence after 20 samples
+- Learned profiles persist to `localStorage` across sessions
+
+After 10–20 sessions ARCHITECT has a personalized parameter profile per context type. The sidebar shows `✓ learned` when a rating is recorded.
+
+**Step 4 — Reflexive Session Analysis**
+
+New `⟲ ANALYZE SESSION` button in the sidebar (appears after 3 turns). Sends the session's coherence fingerprint — per-turn scores, drift events, H-signal count, B-signal count, active preset — to the LLM with a structured prompt asking for concrete configuration improvements. Returns prioritized suggestions (high / medium / low) with specific actions. User can accept or dismiss. Requires API key to be set.
+
+**Step 5 — Knowledge Anchors**
+
+Domain selector in the DISPLAY tab. Choosing a domain loads a curated vocabulary (20 terms) into the session system prompt, calibrating drift detection to what coherent responses look like in that field:
+
+- Medical / Clinical
+- Legal / Compliance
+- Software / Engineering
+- Finance / Business
+- Research / Academic
+- General (default, no injection)
+
+**Step 6 — Display Preferences (Mobile UI)**
+
+Full DISPLAY & INTELLIGENCE tab replacing the previous placeholder:
+- 4 theme selector: Navy (default), Dark, Light, High Contrast
+- Font size slider: 10–18px with reset button. Saves to localStorage.
+- Compact mode toggle: smaller message bubbles and tighter spacing for phone screens
+- All preferences persist across sessions via localStorage
+
+**Step 7 — proxy.ts updated**
+
+`pages/api/proxy.ts` now accepts `temperature`, `top_p`, and `frequency_penalty` from the request body and forwards them to all three providers (Anthropic, OpenAI, Grok) with range clamping. Anthropic gets temperature + top_p. OpenAI/Grok also get frequency_penalty.
+
+---
+
+---
+
 ## V2.0
 
 ### Vercel Deployment — Semantic Embeddings, UKF, Multi-Provider
