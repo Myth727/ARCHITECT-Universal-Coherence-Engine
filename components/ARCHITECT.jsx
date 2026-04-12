@@ -6,7 +6,7 @@ import {
 
 // ═══════════════════════════════════════════════════════════════
 //  FILE: ARCHITECT.jsx
-//  ARCHITECT — UNIVERSAL COHERENCE ENGINE · V2.0
+//  ARCHITECT — UNIVERSAL COHERENCE ENGINE · V2.1
 //  © Hudson & Perry Research
 //  Authors: David Hudson (@RaccoonStampede) · David Perry (@Prosperous727)
 //
@@ -209,7 +209,7 @@ function sdePercentilesAtStep(paths,step) {
 // subtracted from the drift term via delta. When variance is high, the
 // process model predicts stronger mean reversion, tightening the estimate.
 // Couples the Kalman process model with the GARCH variance output.
-// ── Unscented Kalman Filter (UKF) — V2.0 ─────────────────────
+// ── Unscented Kalman Filter (UKF) — V2.1 ─────────────────────
 // Replaces linear Kalman. Handles nonlinear coherence dynamics correctly.
 // Uses sigma points instead of linearization — more accurate at extremes.
 // Signature identical to old kalmanStep — drop-in replacement.
@@ -485,7 +485,7 @@ function computeCoherence(newContent,history,weights,repThresh) {
   return Math.min(Math.max((w.tfidf*vocab+w.jsd*jsdScore+w.length*lenScore+w.structure*struct+w.persistence*persist)*repetitionPenalty,.30),.99);
 }
 
-// ── Semantic Coherence — V2.0 ──────────────────────────────────
+// ── Semantic Coherence — V2.1 ──────────────────────────────────
 // Uses embeddings from Web Worker (all-MiniLM-L6-v2).
 // Falls back to TF-IDF if embedder not ready.
 function cosineSimilarityVec(a, b) {
@@ -593,43 +593,101 @@ function buildDriftGateInjection(smoothedVar,cfg) {
     `No new frameworks. No unsolicited steps. Reference only prior established context.`;
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+//  V2.1 ENGINE MODULES
+// ═══════════════════════════════════════════════════════════════
+const AT_PROFILES={
+  code:{temperature:0.15,top_p:0.80,frequency_penalty:0.20},
+  creative:{temperature:1.15,top_p:0.95,frequency_penalty:0.50},
+  analytical:{temperature:0.40,top_p:0.88,frequency_penalty:0.20},
+  conversational:{temperature:0.75,top_p:0.90,frequency_penalty:0.10},
+  chaotic:{temperature:1.70,top_p:0.99,frequency_penalty:0.80},
+};
+const AT_PATTERNS={
+  code:[/\b(code|function|class|bug|error|debug|api|algorithm|typescript|javascript|python|sql|json|import|export|async|await|interface|const|let|var)\b/i,/```[\s\S]*```/,/[{}();=><]/],
+  creative:[/\b(write|story|poem|creative|imagine|fiction|character|plot|lyrics|song|brainstorm|roleplay|act as)\b/i],
+  analytical:[/\b(analyze|compare|evaluate|assess|research|review|data|statistics|explain|summarize)\b/i],
+  conversational:[/\b(hey|hi|hello|thanks|cool|nice|lol|chat|opinion|feel|believe)\b/i,/^.{0,30}$/],
+  chaotic:[/\b(chaos|random|wild|crazy|absurd|glitch|entropy)\b/i,/(!{3,}|\?{3,})/],
+};
+function detectMsgContext(msg,history){
+  const scores={code:0,creative:0,analytical:0,conversational:0,chaotic:0};
+  const chk=(t,w)=>{for(const[ctx,pats]of Object.entries(AT_PATTERNS))for(const p of pats)if(p.test(t))scores[ctx]+=w;};
+  chk(msg,3);(history||[]).slice(-4).forEach(m=>chk(m.content||"",1));
+  const best=Object.entries(scores).sort((a,b)=>b[1]-a[1])[0];
+  const total=Object.values(scores).reduce((a,b)=>a+b,0);
+  return{type:best[0],confidence:total>0?best[1]/total:0.5};
+}
+function computeAutoTuneParams(msg,history,learnedProfiles){
+  const{type,confidence}=detectMsgContext(msg,history);
+  let p={...AT_PROFILES[type]};
+  if(confidence<0.6){const bal=AT_PROFILES.conversational;const w=confidence/0.6;p={temperature:p.temperature*w+bal.temperature*(1-w),top_p:p.top_p*w+bal.top_p*(1-w),frequency_penalty:p.frequency_penalty*w+bal.frequency_penalty*(1-w)};}
+  const lp=(learnedProfiles||{})[type];
+  if(lp&&lp.sampleCount>=3){const wt=Math.min((lp.sampleCount/20)*0.5,0.5);for(const k of Object.keys(p))if(lp.adjustments&&lp.adjustments[k])p[k]+=lp.adjustments[k]*wt;}
+  p.temperature=Math.min(Math.max(p.temperature,0),2);p.top_p=Math.min(Math.max(p.top_p,0),1);p.frequency_penalty=Math.min(Math.max(p.frequency_penalty,-2),2);
+  return{params:p,type,confidence};
+}
+const FB_NEUTRAL={temperature:0.7,top_p:0.9,frequency_penalty:0.2};
+function createFeedbackState(){
+  const lp={};
+  ["code","creative","analytical","conversational","chaotic"].forEach(ctx=>{lp[ctx]={contextType:ctx,sampleCount:0,positiveCount:0,negativeCount:0,positiveParams:{...FB_NEUTRAL},negativeParams:{...FB_NEUTRAL},adjustments:{},lastUpdated:0};});
+  return{history:[],learnedProfiles:lp};
+}
+function emaUpd(cur,obs,a){const inv=1-a;return{temperature:cur.temperature*inv+obs.temperature*a,top_p:cur.top_p*inv+obs.top_p*a,frequency_penalty:cur.frequency_penalty*inv+obs.frequency_penalty*a};}
+function processFeedback(state,contextType,rating,params){
+  const prof={...state.learnedProfiles[contextType]};
+  prof.sampleCount++;prof.lastUpdated=Date.now();
+  if(rating===1){prof.positiveCount++;prof.positiveParams=emaUpd(prof.positiveParams,params,0.3);}
+  else{prof.negativeCount++;prof.negativeParams=emaUpd(prof.negativeParams,params,0.3);}
+  const adj={};for(const k of Object.keys(FB_NEUTRAL)){const d=(prof.positiveParams[k]-FB_NEUTRAL[k])-(prof.negativeParams[k]-FB_NEUTRAL[k]);if(Math.abs(d*0.5)>0.01)adj[k]=d*0.5;}
+  prof.adjustments=adj;
+  return{...state,learnedProfiles:{...state.learnedProfiles,[contextType]:prof}};
+}
+function saveFeedbackState(s){try{localStorage.setItem("arch_fb",JSON.stringify(s));}catch(e){}}
+function loadFeedbackState(){try{const s=localStorage.getItem("arch_fb");return s?JSON.parse(s):createFeedbackState();}catch(e){return createFeedbackState();}}
+function buildReflexivePrompt(coherenceData,activePreset){
+  const avg=coherenceData.length?coherenceData.reduce((s,d)=>s+d.raw,0)/coherenceData.length:0;
+  const scores=coherenceData.map(d=>d.raw.toFixed(3)).join(", ");
+  const drifts=coherenceData.filter(d=>d.harnessActive).length;
+  return "Analyze this ARCHITECT session. Return ONLY valid JSON (no markdown, no backticks).\n\nSESSION:\n- Preset: "+activePreset+"\n- Turns: "+coherenceData.length+"\n- Avg coherence: "+avg.toFixed(3)+"\n- Scores: ["+scores+"]\n- Drift events: "+drifts+"\n\nFormat: {\"suggestions\":[{\"type\":\"preset_change\",\"description\":\"...\",\"action\":\"...\",\"priority\":\"high\"}],\"summary\":\"1-2 sentences\"}";
+}
+const KNOWLEDGE_ANCHORS={
+  none:{label:"General",terms:[]},
+  medical:{label:"Medical / Clinical",terms:["diagnosis","etiology","pathophysiology","contraindication","pharmacokinetics","differential","prognosis","protocol","efficacy","adverse","symptom","clinical","evidence-based","randomized","placebo","dose","mechanism","indication","comorbidity"]},
+  legal:{label:"Legal / Compliance",terms:["statute","jurisdiction","liability","precedent","plaintiff","defendant","contract","tort","remedy","damages","fiduciary","disclosure","compliance","regulatory","indemnity","clause","arbitration","due diligence","material breach","consideration"]},
+  engineering:{label:"Software / Engineering",terms:["architecture","interface","module","abstraction","latency","throughput","scalability","redundancy","fault tolerance","specification","schema","protocol","algorithm","complexity","optimization","refactor","deployment","integration","regression","API"]},
+  finance:{label:"Finance / Business",terms:["revenue","margin","liquidity","volatility","portfolio","derivative","hedge","capital","equity","liability","amortization","EBITDA","valuation","risk-adjusted","benchmark","yield","duration","correlation","alpha","beta"]},
+  research:{label:"Research / Academic",terms:["hypothesis","methodology","variable","control","significance","correlation","causation","bias","replication","peer-reviewed","meta-analysis","statistical","sample","validity","reliability","qualitative","quantitative","framework","literature","citation"]},
+};
+function buildAnchorInjection(anchorKey){
+  if(!anchorKey||anchorKey==="none")return"";
+  const a=KNOWLEDGE_ANCHORS[anchorKey];
+  if(!a||!a.terms.length)return"";
+  return"\n\n[DOMAIN: "+a.label.toUpperCase()+" | Terms: "+a.terms.join(", ")+"]";
+}
+const THEMES={
+  navy:{bg:"#0A1628",surface:"#0E1C2A",border:"#1A3050",text:"#C8D8E8",accent:"#0A7878",label:"Navy (Default)"},
+  dark:{bg:"#0D0D0D",surface:"#1A1A1A",border:"#2A2A2A",text:"#E0E0E0",accent:"#00A878",label:"Dark"},
+  light:{bg:"#F4F6F8",surface:"#FFFFFF",border:"#D0D8E0",text:"#1A2A3A",accent:"#0A6070",label:"Light"},
+  contrast:{bg:"#000000",surface:"#111111",border:"#FFFF00",text:"#FFFFFF",accent:"#00FF88",label:"High Contrast"},
+};
+function loadDisplayPrefs(){try{const s=localStorage.getItem("arch_dp");return s?JSON.parse(s):{theme:"navy",fontSize:13,compactMode:false};}catch(e){return{theme:"navy",fontSize:13,compactMode:false};}}
+function saveDisplayPrefs(p){try{localStorage.setItem("arch_dp",JSON.stringify(p));}catch(e){}}
+
 // ═══════════════════════════════════════════════════════════════
 //  PIPING ENGINE
 // ═══════════════════════════════════════════════════════════════
 function buildPipeInjection(smoothedVar,kalmanX,kalmanP,calmStreak,driftCount,harnessMode,turn,hSignalCount,bSignalCount,adaptedSig,cfg) {
-  // No USE_PIPING guard — featPipe at the call site is the live gate.
-  // V1.5.9 fix #Grok-4: reads cfg.varDecoherence/varCaution/varCalm
-  // so pipe directives respond to preset thresholds, not hardcoded module constants.
-  if (turn<2) return "";
-  const vDec=cfg?.varDecoherence??VAR_DECOHERENCE;
-  const vCau=cfg?.varCaution??VAR_CAUTION;
-  const vCal=cfg?.varCalm??VAR_CALM;
-  const varState=smoothedVar>vDec?"DECOHERENCE"
-    :smoothedVar>vCau?"CAUTION"
-    :smoothedVar<vCal?"CALM":"NOMINAL";
-  const directive=smoothedVar>vDec
-    ?`Re-align to Resonance Anchor ${RESONANCE_ANCHOR} Hz. One sentence only. No questions. No elaboration. Direct answer.`
-    :smoothedVar>vCau
-    ?`Variance rising. Consolidate. Increase term persistence.`
-    :smoothedVar<vCal&&calmStreak>=3
-    ?`Coherence stable. Maintain current density and terminology. One question maximum.`
-    :`Answer directly. No unrequested content. Maximum one follow-up question.`;
-  const hLine=hSignalCount>0
-    ?`\nH-Signals fired this session: ${hSignalCount} — you have exhibited high-confidence language or source inconsistency. Correct.`
-    :"";
-  const bLine=bSignalCount>0
-    ?`\nB-Signals fired this session: ${bSignalCount} — you have exhibited sycophancy, hype, or off-task elaboration. Correct.`
-    :"";
-  const sigmaLine=adaptedSig!=null
-    ?`\nσ_adapted=${adaptedSig.toFixed(5)} (live EWMA) | κ=0.444 (fixed)`
-    :"";
-  return `\n\n[SYSTEM_INTERNAL — ARCHITECT PIPE | Turn ${turn}]` +
-    `\nσ²=${smoothedVar.toFixed(6)} | State=${varState}` +
-    `\nKalman x̂=${kalmanX.toFixed(4)} | P=${kalmanP.toFixed(5)}` +
-    `\nCalm=${calmStreak} | Drift=${driftCount} | Mode=${harnessMode.toUpperCase()}` +
-    `\nH-Sigs=${hSignalCount} | B-Sigs=${bSignalCount}` +
-    sigmaLine + hLine + bLine +
-    `\nDirective: ${directive}\n[END PIPE]`;
+  if(turn<2)return"";
+  const vDec=cfg?.varDecoherence??VAR_DECOHERENCE,vCau=cfg?.varCaution??VAR_CAUTION,vCal=cfg?.varCalm??VAR_CALM;
+  const st=smoothedVar>vDec?"DEC":smoothedVar>vCau?"CAU":smoothedVar<vCal?"CLM":"NOM";
+  const md=harnessMode==="moderate"?"MOD":harnessMode==="deep_clean"?"DPC":harnessMode==="extreme"?"XTR":"AUD";
+  const dir=st==="DEC"?"REALIGN.1-sent.No-Qs.":st==="CAU"?"CONSOLIDATE.persist-up.":st==="CLM"&&calmStreak>=3?"STABLE.maintain.le-1Q.":"DIRECT.no-unreq.le-1Q.";
+  const hS=hSignalCount>0?" H"+hSignalCount+":HIGHCONF->COR":"";
+  const bS=bSignalCount>0?" B"+bSignalCount+":SYCO->COR":"";
+  const sig=adaptedSig!=null?"|sa="+adaptedSig.toFixed(4):"";
+  return"[A|t"+turn+"|v="+smoothedVar.toFixed(5)+"|st="+st+"|kx="+kalmanX.toFixed(3)+"|kp="+kalmanP.toFixed(4)+"|cl="+calmStreak+"|dr="+driftCount+"|md="+md+"|h="+hSignalCount+"|b="+bSignalCount+sig+"]->"+dir+hS+bS+"[/A]";
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -848,11 +906,11 @@ function downloadSdePaths(livePaths, coherenceData, sessionId, nPaths, userKappa
 
 // ── System prompt ──────────────────────────────────────────────
 const BASE_SYSTEM =
-  `You are a highly precise technical assistant operating within ARCHITECT V2.0, a real-time AI coherence engine. `+
+  `You are a highly precise technical assistant operating within ARCHITECT V2.1, a real-time AI coherence engine. `+
   `Maintain strict logical consistency across all turns. Reference prior context explicitly when building on it. `+
   `When files are attached, analyze them thoroughly. `+
   `When RAG MEMORY is provided, treat it as recalled context. `+
-  `When SYSTEM_INTERNAL PIPE data is present, act on its directive immediately. `+
+  `When an ARCHITECT PIPE [A|...|]->directive[/A] is present, act on its directive immediately. PIPE KEY: t=turn,v=variance,st=state(NOM/CAU/DEC/CLM),kx=kalman,cl=calm,dr=drift,md=mode(AUD/MOD/DPC/XTR),h=H-sigs,b=B-sigs. `+
   `When MUTE_MODE or DRIFT_GATE is active, respect the word limit strictly.\n`+
   `MONITORING: Every response you generate is scored, classified, and logged. If the PIPE reports H-Signals or B-Signals fired, those are confirmed detections — you have already exhibited that behavior in this session. Correct immediately.\n`+
   `BEHAVIORAL RULES (non-negotiable):\n`+
@@ -887,9 +945,9 @@ function buildExportBlock(s) {
     :"  (empty)";
   const kappaNote=(userKappa??KAPPA)!==KAPPA?` ⚠ MODIFIED from 0.444`:"";
   const anchorNote=(userAnchor??RESONANCE_ANCHOR)!==RESONANCE_ANCHOR?` ⚠ MODIFIED from 623.81`:"";
-  return `START_MISSION_PROTOCOL: HUDSON_PERRY_DRIFT_ARCHITECT_V2.0
+  return `START_MISSION_PROTOCOL: HUDSON_PERRY_DRIFT_ARCHITECT_V2.1
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ARCHITECT — Universal Coherence Engine V2.0
+ARCHITECT — Universal Coherence Engine V2.1
 © Hudson & Perry Research
 ⚠ R&D ONLY — Proxy indicators, no warranty
 
@@ -1391,7 +1449,7 @@ function computeEfficiencyRatio(text, entropy) {
 const FRAMEWORK_CONTENT=`ARCHITECT — UNIVERSAL COHERENCE ENGINE
 TIME-VARYING ERROR DYNAMICS & AI COHERENCE ENGINE
 Authors: David Hudson (@RaccoonStampede) & David Perry (@Prosperous727)
-Version 3.6  |  V2.0  |  © 2026
+Version 3.6  |  V2.1  |  © 2026
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1540,7 +1598,7 @@ CONFIRMED: SDE math ✓ | Kalman ✓ | GARCH ✓ | TF-IDF+JSD ✓
 REQUIRES VALIDATION: C-score vs. human judgment | H-signal
 false positive rate | 623.81 Hz physical anchor
 
-V1.5.3–V2.0 ADDITIONS TO FRAMEWORK
+V1.5.3–V2.1 ADDITIONS TO FRAMEWORK
   GARCH preset tuning: per-preset omega/alpha/beta now applied.
   Epsilon param: mathEpsilon wired to cap_eff, chart bands, MATH tab.
   cfg threading: varCaution/Decoherence/Calm flow through pipe, gate,
@@ -1550,11 +1608,11 @@ V1.5.3–V2.0 ADDITIONS TO FRAMEWORK
     and Advanced Tab state survive session reload.
   Rewind: prev/next buttons use actual buffer bounds.
   All key values memoized. Model string: claude-sonnet-4-6.
-  V1.5.17–V2.0: Advanced Tab (CIR/Heston, Custom Rails, MHT Study,
+  V1.5.17–V2.1: Advanced Tab (CIR/Heston, Custom Rails, MHT Study,
     Poole CA Sim, DATL Heartbeat). CIRCUIT preset. SDE path viz.
     Circuit Signal sidebar. Mobile scroll fixed. Full pseudoscience
     cleanup — experimental framing behind consent gate. MessageBubble
-    memoized. All version strings normalized to V2.0.
+    memoized. All version strings normalized to V2.1.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1753,7 +1811,7 @@ A: Yes. CHAT downloads a clean text file with an audit table.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-PART 8 — V1.5.x ADDITIONS (V1.5.0 → V2.0)
+PART 8 — V1.5.x ADDITIONS (V1.5.0 → V2.1)
 
 SDE PATH COUNT (TUNE → SDE SIMULATION PATHS)
   Default: 50 paths. Options: 5, 10, 20, 25, 50, 100, 200, 250, 300, 500.
@@ -1952,7 +2010,7 @@ const DisclaimerModal = React.memo(function DisclaimerModal({showDisclaimer,setS
         </div>
         <div style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#4A6060",letterSpacing:1}}>
-          ARCHITECT — UNIVERSAL COHERENCE ENGINE V2.0 · READ IN FULL BEFORE PROCEEDING
+          ARCHITECT — UNIVERSAL COHERENCE ENGINE V2.1 · READ IN FULL BEFORE PROCEEDING
         </div>
       </div>
 
@@ -2125,7 +2183,10 @@ const TuneModal = React.memo(function TuneModal() {
     cirKappa,setCirKappa,cirTheta,setCirTheta,cirSigma,setCirSigma,
     hestonKappa,setHestonKappa,hestonTheta,setHestonTheta,
     hestonSigma,setHestonSigma,hestonRho,setHestonRho,hestonV0,setHestonV0,
+    autoTuneEnabled,setAutoTuneEnabled,lastAutoTune,
+    domainAnchor,setDomainAnchor,
   } = useContext(TuneCtx);
+  const [displayPrefs,setDisplayPrefs] = React.useState(()=>loadDisplayPrefs());
   if (!showTuning) return null;
   return (
   <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,
@@ -2567,35 +2628,76 @@ const TuneModal = React.memo(function TuneModal() {
       </div>
 
       <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="display"?"block":"none"}}>
-        <div style={{fontFamily:"Courier New,monospace",fontSize:9,color:"#906000",letterSpacing:3,marginBottom:12}}>
-          DISPLAY
+        <div style={{fontFamily:"Courier New,monospace",fontSize:9,color:"#906000",letterSpacing:3,marginBottom:12}}>DISPLAY &amp; INTELLIGENCE</div>
+        <div style={{marginBottom:12}}>
+          <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#2E5070",letterSpacing:2,marginBottom:6}}>THEME</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+            {Object.entries(THEMES).map(([key,th])=>(
+              <button key={key} onClick={()=>{const np={...displayPrefs,theme:key};setDisplayPrefs(np);saveDisplayPrefs(np);}}
+                style={{padding:"6px 8px",cursor:"pointer",borderRadius:4,fontFamily:"Courier New,monospace",fontSize:8,
+                  border:displayPrefs.theme===key?"2px solid #0A7878":"1px solid #1A3050",
+                  background:th.bg,color:th.text}}>{th.label}</button>
+            ))}
+          </div>
         </div>
-        <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#2E5070",marginBottom:16,lineHeight:1.6,
-          padding:"6px 10px",background:"#EEF2F7",borderRadius:3,border:"1px solid #C0D0E4"}}>
-          Theme toggle and sidebar resize coming in a future build.
-          Framework is dark-mode first by design.
-          Optimized for extended reading sessions.
+        <div style={{marginBottom:12,padding:"8px 10px",background:"#0A1422",borderRadius:4,border:"1px solid #1A3050"}}>
+          <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#2E5070",letterSpacing:2,marginBottom:6}}>{"FONT SIZE — " + displayPrefs.fontSize + "px"}</div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <input type="range" min={10} max={18} step={1} value={displayPrefs.fontSize}
+              onChange={e=>{const np={...displayPrefs,fontSize:parseInt(e.target.value)};setDisplayPrefs(np);saveDisplayPrefs(np);}}
+              style={{flex:1,accentColor:"#0A7878"}}/>
+            <button onClick={()=>{const np={...displayPrefs,fontSize:13};setDisplayPrefs(np);saveDisplayPrefs(np);}}
+              style={{padding:"2px 7px",fontFamily:"Courier New,monospace",fontSize:7,cursor:"pointer",background:"none",border:"1px solid #1A3050",borderRadius:3,color:"#2E5070"}}>RESET</button>
+          </div>
         </div>
-        <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#2E5070",lineHeight:1.8}}>
-          Current layout: 55% chat · 45% metrics<br/>
-          Font: Trebuchet MS (body) · Courier New (data)<br/>
-          Background: #06090F · Accent: #1EAAAA<br/>
-          κ color: #C8860A · Health green: #40D080
+        <div style={{marginBottom:12,display:"flex",alignItems:"center",gap:10,padding:"8px 10px",background:"#0A1422",borderRadius:4,border:"1px solid #1A3050"}}>
+          <input type="checkbox" id="compactMode" checked={displayPrefs.compactMode}
+            onChange={e=>{const np={...displayPrefs,compactMode:e.target.checked};setDisplayPrefs(np);saveDisplayPrefs(np);}}
+            style={{width:14,height:14,cursor:"pointer",accentColor:"#0A7878"}}/>
+          <label htmlFor="compactMode" style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#C8D8E8",cursor:"pointer"}}>Compact mode — smaller bubbles, tighter spacing</label>
         </div>
         {showSdePaths&&(
-          <div style={{marginTop:12,padding:'8px 10px',background:'#EEF6FA',borderRadius:4,border:'1px solid #5090C033'}}>
-            <div style={{fontFamily:'Courier New,monospace',fontSize:8,color:'#1E6A8A',letterSpacing:1,marginBottom:8}}>SDE PATH OPACITY</div>
-            <div style={{display:'flex',alignItems:'center',gap:10}}>
-              <input type='number' min={0.05} max={0.40} step={0.05} value={pathOpacity}
+          <div style={{marginBottom:12,padding:"8px 10px",background:"#EEF6FA",borderRadius:4,border:"1px solid #5090C033"}}>
+            <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#1E6A8A",letterSpacing:1,marginBottom:6}}>SDE PATH OPACITY</div>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <input type="number" min={0.05} max={0.40} step={0.05} value={pathOpacity}
                 onChange={e=>setPathOpacity(parseFloat(e.target.value))}
-                style={{width:60,fontFamily:'Courier New,monospace',fontSize:9,color:'#1E6A8A',
-                  background:'#FAFCFF',border:'1px solid #5090C044',borderRadius:3,padding:'2px 6px'}}/>
-              <span style={{fontFamily:'Courier New,monospace',fontSize:7,color:'#4A7090'}}>0.05–0.40 · default 0.15</span>
+                style={{width:60,fontFamily:"Courier New,monospace",fontSize:9,color:"#1E6A8A",background:"#FAFCFF",border:"1px solid #5090C044",borderRadius:3,padding:"2px 6px"}}/>
+              <span style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#4A7090"}}>0.05–0.40</span>
             </div>
           </div>
         )}
+        <div style={{marginBottom:12,padding:"8px 10px",background:"#0A1422",borderRadius:4,border:"1px solid #1A3050"}}>
+          <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#2E5070",letterSpacing:2,marginBottom:4}}>DOMAIN ANCHOR</div>
+          <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#4A6A8A",marginBottom:6,lineHeight:1.5}}>Loads domain vocabulary into session. Calibrates drift detection per field.</div>
+          <select value={domainAnchor} onChange={e=>setDomainAnchor(e.target.value)}
+            style={{width:"100%",padding:"5px 8px",fontFamily:"Courier New,monospace",fontSize:8,background:"#06090F",color:"#C8D8E8",border:"1px solid #2A4060",borderRadius:3,cursor:"pointer"}}>
+            {Object.entries(KNOWLEDGE_ANCHORS).map(([key,a])=>(
+              <option key={key} value={key}>{a.label}</option>
+            ))}
+          </select>
+          {domainAnchor!=="none"&&KNOWLEDGE_ANCHORS[domainAnchor]&&(
+            <div style={{marginTop:5,fontFamily:"Courier New,monospace",fontSize:7,color:"#0A7878"}}>
+              {"✓ " + KNOWLEDGE_ANCHORS[domainAnchor].terms.length + " terms active"}
+            </div>
+          )}
+        </div>
+        <div style={{padding:"8px 10px",background:"#0A1422",borderRadius:4,border:"1px solid #1A3050"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+            <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#2E5070",letterSpacing:2}}>AUTOTUNE</div>
+            <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+              <input type="checkbox" checked={autoTuneEnabled} onChange={e=>setAutoTuneEnabled(e.target.checked)} style={{width:13,height:13,accentColor:"#0A7878"}}/>
+              <span style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#C8D8E8"}}>{autoTuneEnabled?"ON":"OFF"}</span>
+            </label>
+          </div>
+          <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#4A6A8A",lineHeight:1.5,marginBottom:4}}>Per-turn context detection. Selects optimal temperature and sampling params.</div>
+          {lastAutoTune&&autoTuneEnabled&&(
+            <div style={{padding:"4px 7px",background:"#06090F",borderRadius:3,border:"1px solid #0A787830",fontFamily:"Courier New,monospace",fontSize:7,color:"#0A7878",lineHeight:1.6}}>
+              {"Last: " + lastAutoTune.type.toUpperCase() + " " + Math.round(lastAutoTune.confidence*100) + "% · T=" + lastAutoTune.params.temperature.toFixed(2) + " · P=" + lastAutoTune.params.top_p.toFixed(2)}
+            </div>
+          )}
+        </div>
       </div>
-
       {/* ── ADVANCED TAB ──────────────────────────────────────────── */}
       <div style={{display:tuneTab==="advanced"?"block":"none",padding:"4px 0"}}>
 
@@ -3092,7 +3194,7 @@ const TuneModal = React.memo(function TuneModal() {
         display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#2E5070",letterSpacing:1}}>
-          ACTIVE: {PRESETS[activePreset]?.label??activePreset} · V2.0
+          ACTIVE: {PRESETS[activePreset]?.label??activePreset} · V2.1
         </span>
         <button onClick={()=>setShowTuning(false)}
           style={{padding:"4px 14px",background:"#EEF8F2",
@@ -3560,7 +3662,7 @@ const BookmarksModal = React.memo(function BookmarksModal() {
         </span>
         <span style={{fontFamily:"Courier New, monospace",fontSize:8,
           color:"#2E5070",letterSpacing:1}}>
-          V2.0 © HUDSON &amp; PERRY
+          V2.1 © HUDSON &amp; PERRY
         </span>
       </div>
     </div>
@@ -3933,19 +4035,27 @@ export default function HudsonPerryDriftV1() {
   // V1.5.9 fix #C: researchNotes converted to uncontrolled textarea
   const researchNotesRef=useRef("");
 
-  // ── V2.0: Embedder Web Worker ref ────────────────────────────
+  // ── V2.1: Embedder Web Worker ref ────────────────────────────
   // workerRef.current = { worker: Worker, ready: bool }
   const workerRef=useRef(null);
 
-  // ── V2.0: Provider + key storage state ───────────────────────
+  // ── V2.1: Provider + key storage state ───────────────────────
   const [provider,       setProvider]       = useState("anthropic");
+  // ── V2.1: Intelligence state ──────────────────────────────────
+  const [autoTuneEnabled,setAutoTuneEnabled]= useState(true);
+  const [lastAutoTune,   setLastAutoTune]   = useState(null);
+  const [feedbackState,  setFeedbackState]  = useState(()=>loadFeedbackState());
+  const [msgRatings,     setMsgRatings]     = useState({});
+  const [reflexiveResult,setReflexiveResult]= useState(null);
+  const [reflexiveLoading,setReflexiveLoading]=useState(false);
+  const [domainAnchor,   setDomainAnchor]   = useState("none");
   const [keySaved,       setKeySaved]       = useState(false);   // true when saved to localStorage
   const [embedderStatus, setEmbedderStatus] = useState("init");  // "init"|"loading"|"ready"|"error"
   useEffect(()=>{
     if (rewindTurn===null) chatEndRef.current?.scrollIntoView({behavior:"smooth"});
   },[messages,rewindTurn]);
 
-  // ── V2.0: Load saved key + provider from localStorage on mount ──
+  // ── V2.1: Load saved key + provider from localStorage on mount ──
   useEffect(()=>{
     try {
       const savedKey      = localStorage.getItem("architect_api_key");
@@ -3955,7 +4065,7 @@ export default function HudsonPerryDriftV1() {
     } catch(e) {}
   },[]);
 
-  // ── V2.0: Initialize embedder Web Worker on mount ─────────────
+  // ── V2.1: Initialize embedder Web Worker on mount ─────────────
   useEffect(()=>{
     if (typeof window === "undefined") return;
     try {
@@ -4137,6 +4247,7 @@ export default function HudsonPerryDriftV1() {
           showIntegrityFloor,featIntegrityFloor,integrityThreshold,
           mhtPsi,mhtKappa,mhtTau,mhtGamma,mhtCap,mhtAlpha,mhtBeta,mhtSigma,
           userRailsEnabled,userCustomRails,sdeModel,
+      autoTuneEnabled,lastAutoTune,domainAnchor,
           cirKappa,cirTheta,cirSigma,hestonKappa,hestonTheta,hestonSigma,hestonRho,hestonV0,
         }));
       } catch(e) { console.warn("hpdl: config save failed",e); }
@@ -4384,7 +4495,8 @@ export default function HudsonPerryDriftV1() {
       const railsInj=userRailsEnabled&&userCustomRails.trim()
         ?`\n\n[USER CUSTOM RAILS]\n${userCustomRails.trim()}\n[END CUSTOM RAILS]`
         :"";
-      const systemPrompt=BASE_SYSTEM+HARNESS_INJECTIONS[harnessMode]+ragInj+pipeInj+gateInj+muteInj+railsInj;
+      const anchorInj=buildAnchorInjection(domainAnchor);
+      const systemPrompt=BASE_SYSTEM+HARNESS_INJECTIONS[harnessMode]+ragInj+pipeInj+gateInj+muteInj+railsInj+anchorInj;
       const needsHardTrim=["deep","extreme"].includes(harnessMode)&&pruned.length>6;
       const trimmed=needsHardTrim?[...pruned.slice(0,4),...pruned.slice(-6)]:pruned;
       // Guard: Anthropic API requires the last message to be role:"user".
@@ -4403,7 +4515,13 @@ export default function HudsonPerryDriftV1() {
       const msgLen=apiMessages.reduce((s,m)=>s+(typeof m.content==="string"?m.content.length:JSON.stringify(m.content).length),0);
       setTokenEstimate(Math.round((sysLen+msgLen)/4));
 
-      // V2.0: Key goes to server-side proxy — never exposed in browser
+      // V2.1: AutoTune
+      let atParams={};
+      if(autoTuneEnabled){
+        const uText=typeof userMessage==="string"?userMessage:JSON.stringify(userMessage);
+        const atRes=computeAutoTuneParams(uText,apiMessages,feedbackState.learnedProfiles);
+        atParams=atRes.params;setLastAutoTune({type:atRes.type,confidence:atRes.confidence,params:atRes.params});
+      }
       const headers={
         "Content-Type":"application/json",
         "anthropic-version":"2023-06-01",
@@ -4418,6 +4536,7 @@ export default function HudsonPerryDriftV1() {
           max_tokens:maxTokens,
           system:systemPrompt,
           messages:apiMessages,
+          ...(autoTuneEnabled&&atParams.temperature!=null?{temperature:atParams.temperature,top_p:atParams.top_p}:{}),
         }),
       });
 
@@ -5021,6 +5140,8 @@ export default function HudsonPerryDriftV1() {
     cirKappa,setCirKappa,cirTheta,setCirTheta,cirSigma,setCirSigma,
     hestonKappa,setHestonKappa,hestonTheta,setHestonTheta,
     hestonSigma,setHestonSigma,hestonRho,setHestonRho,hestonV0,setHestonV0,
+    autoTuneEnabled,setAutoTuneEnabled,lastAutoTune,
+    domainAnchor,setDomainAnchor,
   }),[showTuning,activePreset,customConfig,userKappa,userAnchor,hudsonMode,
       featKalman,featGARCH,featSDE,featRAG,featPipe,featMute,featGate,
       featBSig,featHSig,featPrune,featZeroDrift,nPaths,postAuditMode,postAuditThresh,
@@ -5144,9 +5265,9 @@ export default function HudsonPerryDriftV1() {
       {/* HEADER */}
       <div style={S.header}>
         <div>
-          <div style={S.title}>ARCHITECT — UNIVERSAL COHERENCE ENGINE V2.0</div>
+          <div style={S.title}>ARCHITECT — UNIVERSAL COHERENCE ENGINE V2.1</div>
           <div style={S.subtitle}>
-            © HUDSON &amp; PERRY RESEARCH · MUTE:{featMute?"ON":"OFF"} · GATE:{featGate?"ON":"OFF"} · PIPE:{featPipe?"ON":"OFF"} · REWIND:ON · V2.0
+            © HUDSON &amp; PERRY RESEARCH · MUTE:{featMute?"ON":"OFF"} · GATE:{featGate?"ON":"OFF"} · PIPE:{featPipe?"ON":"OFF"} · REWIND:ON · V2.1
           </div>
           <div style={{display:"flex",gap:10,marginTop:3}}>
             <a href="https://x.com/RaccoonStampede" target="_blank" rel="noreferrer"
@@ -5279,7 +5400,55 @@ export default function HudsonPerryDriftV1() {
         </div>
       </div>
 
-      {/* PROVIDER + API KEY — V2.0 */}
+      {coherenceData.length>=3&&(
+        <div style={{padding:"4px 20px 0"}}>
+          <button disabled={reflexiveLoading||!apiKey.trim()}
+            onClick={async()=>{
+              setReflexiveLoading(true);setReflexiveResult(null);
+              try{
+                const res=await fetch(API_ENDPOINT,{method:"POST",
+                  headers:{"Content-Type":"application/json","anthropic-version":"2023-06-01","x-architect-provider":provider,"x-api-key":apiKey.trim()},
+                  body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,system:"Return only valid JSON. No markdown.",messages:[{role:"user",content:buildReflexivePrompt(coherenceData,activePreset)}]})});
+                const data=await res.json();
+                const raw=(data.content||[]).map(c=>c.text||"").join("");
+                setReflexiveResult(JSON.parse(raw.replace(/```json|```/g,"").trim()));
+              }catch(e){setReflexiveResult({error:"Analysis failed.",suggestions:[]});}
+              finally{setReflexiveLoading(false);}
+            }}
+            style={{width:"100%",padding:"6px",fontFamily:"Courier New,monospace",fontSize:8,
+              cursor:reflexiveLoading||!apiKey.trim()?"not-allowed":"pointer",
+              background:"none",border:"1px solid #8040C066",borderRadius:4,
+              color:reflexiveLoading?"#4A6A8A":"#8040C0",letterSpacing:2,
+              opacity:!apiKey.trim()?0.4:1}}>
+            {reflexiveLoading?"ANALYZING...":"↳ ANALYZE SESSION"}
+          </button>
+        </div>
+      )}
+      {reflexiveResult&&(
+        <div style={{margin:"6px 20px",padding:"10px 12px",background:"#0A1628",borderRadius:5,border:"1px solid #8040C044"}}>
+          <div style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#8040C0",letterSpacing:2,marginBottom:6}}>SESSION ANALYSIS</div>
+          {reflexiveResult.error
+            ?<div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#C81030"}}>{reflexiveResult.error}</div>
+            :(<div>
+                {reflexiveResult.summary&&<div style={{fontFamily:"Courier New,monospace",fontSize:7.5,color:"#C8D8E8",lineHeight:1.6,marginBottom:6}}>{reflexiveResult.summary}</div>}
+                {(reflexiveResult.suggestions||[]).map((s,idx)=>(
+                  <div key={idx} style={{marginBottom:5,padding:"5px 8px",borderRadius:3,
+                    background:s.priority==="high"?"#200808":"#080F08",
+                    border:"1px solid "+(s.priority==="high"?"#C8103030":"#17804030")}}>
+                    <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:s.priority==="high"?"#C81030":"#178040",letterSpacing:1,marginBottom:2}}>
+                      {(s.priority||"").toUpperCase()+" · "+(s.type||"").replace(/_/g," ").toUpperCase()}
+                    </div>
+                    <div style={{fontFamily:"Courier New,monospace",fontSize:7.5,color:"#C8D8E8",lineHeight:1.4}}>{s.description}</div>
+                    {s.action&&<div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#0A7878",marginTop:2}}>{"→ "+s.action}</div>}
+                  </div>
+                ))}
+                <button onClick={()=>setReflexiveResult(null)} style={{marginTop:4,padding:"2px 8px",fontFamily:"Courier New,monospace",fontSize:7,cursor:"pointer",background:"none",border:"1px solid #1A3050",borderRadius:3,color:"#2E5070"}}>DISMISS</button>
+              </div>
+            )
+          }
+        </div>
+      )}
+      {/* PROVIDER + API KEY — V2.1 */}
       <div style={{display:"flex",flexDirection:"column",gap:4,padding:"4px 20px"}}>
         {/* Provider selector row */}
         <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -5401,7 +5570,7 @@ export default function HudsonPerryDriftV1() {
         <div style={{background:"#F8FAFC",borderBottom:"1px solid #1EAAAA44",padding:"12px 20px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <span style={{...S.sectionTitle,marginBottom:0,color:"#0A7878"}}>
-              MISSION PROTOCOL — HUDSON &amp; PERRY ARCHITECT V2.0
+              MISSION PROTOCOL — HUDSON &amp; PERRY ARCHITECT V2.1
             </span>
             <button style={{...S.exportBtn,background:copied?"#E4F4F4":"transparent",
               color:copied?"#178040":"#0A7878"}} onClick={handleCopyExport}>
@@ -5458,7 +5627,7 @@ export default function HudsonPerryDriftV1() {
               <div style={{margin:"auto",textAlign:"center",
                 fontFamily:"Courier New, monospace",fontSize:11,lineHeight:2}}>
                 <div style={{fontSize:28,marginBottom:12,opacity:.3}}>⬡</div>
-                <div style={{opacity:.5,marginBottom:4}}>ARCHITECT — UNIVERSAL COHERENCE ENGINE V2.0</div>
+                <div style={{opacity:.5,marginBottom:4}}>ARCHITECT — UNIVERSAL COHERENCE ENGINE V2.1</div>
                 <div style={{fontSize:9,letterSpacing:2,opacity:.4}}>
                   SDE · KALMAN · GARCH · TF-IDF · JSD · RAG · PIPE · MUTE · GATE · REWIND · ARCHITECT
                 </div>
@@ -5506,18 +5675,34 @@ export default function HudsonPerryDriftV1() {
               const display=msg._display??getTextFromContent(msg.content);
               const atts=msg._attachments??[];
               const isBookmarked=!isUser&&ti>=0&&bookmarks.some(b=>b.cohIdx===ti);
+              const thumbRating=!isUser?msgRatings[i]:null;
               return (
-                <MessageBubble
-                  key={"msg-"+i+"-"+display.length}
-                  msg={msg} i={i}
-                  isUser={isUser} ti={ti}
-                  cdata={cdata} drifted={drifted}
-                  display={display} atts={atts}
-                  isBookmarked={isBookmarked}
-                  onDelete={()=>deleteTurn(ti)}
-                  onBookmark={()=>toggleBookmark(ti)}
-                  S={S} THEME={THEME}
-                />
+                <div key={"msg-"+i+"-"+display.length}>
+                  <MessageBubble
+                    msg={msg} i={i}
+                    isUser={isUser} ti={ti}
+                    cdata={cdata} drifted={drifted}
+                    display={display} atts={atts}
+                    isBookmarked={isBookmarked}
+                    onDelete={()=>deleteTurn(ti)}
+                    onBookmark={()=>toggleBookmark(ti)}
+                    S={S} THEME={THEME}
+                  />
+                  {!isUser&&ti>=0&&(
+                    <div style={{display:"flex",gap:5,marginTop:-4,marginBottom:4,paddingLeft:6}}>
+                      {[{v:1,e:"+1"},{v:-1,e:"-1"}].map(({v,e})=>(
+                        <button key={v} onClick={()=>{
+                          setMsgRatings(r=>({...r,[i]:v}));
+                          if(lastAutoTune){const nf=processFeedback(feedbackState,lastAutoTune.type,v,lastAutoTune.params);setFeedbackState(nf);saveFeedbackState(nf);}
+                        }} style={{padding:"1px 6px",cursor:"pointer",borderRadius:8,fontSize:10,
+                          background:thumbRating===v?"#0A787822":"transparent",
+                          border:thumbRating===v?"1px solid #0A7878":"1px solid #1A305060",
+                          opacity:thumbRating!=null&&thumbRating!==v?0.3:0.8}}>{e}</button>
+                      ))}
+                      {thumbRating&&<span style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#0A7878",alignSelf:"center"}}>{"✓ learned"}</span>}
+                    </div>
+                  )}
+                </div>
               );
             })}
 
@@ -6077,4 +6262,4 @@ export default function HudsonPerryDriftV1() {
     </TuneCtx.Provider>
   );
 }
-// V2.0: mounted via Next.js pages/index.tsx
+// V2.1: mounted via Next.js pages/index.tsx
