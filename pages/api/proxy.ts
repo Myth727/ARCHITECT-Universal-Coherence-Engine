@@ -1,24 +1,14 @@
-// pages/api/proxy.ts
+// pages/api/proxy.ts  —  V2.1
 // Multi-provider serverless proxy.
-// User's key is passed from the browser in x-api-key header.
-// Provider is identified by x-architect-provider header.
-// Key never stored server-side — each user provides their own.
+// User key passed in x-api-key header. Never stored server-side.
+// V2.1: forwards AutoTune params (temperature, top_p, frequency_penalty) when present.
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 const PROVIDERS: Record<string, { endpoint: string; format: 'anthropic' | 'openai' }> = {
-  anthropic: {
-    endpoint: 'https://api.anthropic.com/v1/messages',
-    format: 'anthropic',
-  },
-  openai: {
-    endpoint: 'https://api.openai.com/v1/chat/completions',
-    format: 'openai',
-  },
-  grok: {
-    endpoint: 'https://api.x.ai/v1/chat/completions',
-    format: 'openai', // Grok is OpenAI-compatible
-  },
+  anthropic: { endpoint: 'https://api.anthropic.com/v1/messages',        format: 'anthropic' },
+  openai:    { endpoint: 'https://api.openai.com/v1/chat/completions',    format: 'openai'    },
+  grok:      { endpoint: 'https://api.x.ai/v1/chat/completions',          format: 'openai'    },
 };
 
 const DEFAULT_MODELS: Record<string, string> = {
@@ -28,9 +18,7 @@ const DEFAULT_MODELS: Record<string, string> = {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const apiKey   = req.headers['x-api-key'] as string;
   const provider = (req.headers['x-architect-provider'] as string) || 'anthropic';
@@ -42,33 +30,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const providerConfig = PROVIDERS[provider];
-  if (!providerConfig) {
-    return res.status(400).json({ error: `Unknown provider: ${provider}` });
-  }
+  if (!providerConfig) return res.status(400).json({ error: `Unknown provider: ${provider}` });
 
   try {
+    // ── V2.1: Extract AutoTune params if present ──────────────────
+    const {
+      messages, system, max_tokens, model,
+      temperature, top_p, frequency_penalty,   // AutoTune params — optional
+    } = req.body;
+
+    // Clamp AutoTune params to safe ranges before forwarding
+    const safeTemp  = temperature  != null ? Math.min(Math.max(Number(temperature),  0.0), 2.0) : undefined;
+    const safeTopP  = top_p        != null ? Math.min(Math.max(Number(top_p),        0.0), 1.0) : undefined;
+    const safeFreq  = frequency_penalty != null
+      ? Math.min(Math.max(Number(frequency_penalty), -2.0), 2.0) : undefined;
+
     let requestBody: any;
-    let requestHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    let requestHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
 
     if (providerConfig.format === 'anthropic') {
-      // Anthropic format — pass through as-is
-      requestHeaders['x-api-key'] = apiKey;
-      requestHeaders['anthropic-version'] = '2023-06-01';
-      requestBody = req.body;
+      requestHeaders['x-api-key']          = apiKey;
+      requestHeaders['anthropic-version']  = '2023-06-01';
+      requestBody = {
+        ...req.body,
+        ...(safeTemp  != null ? { temperature:         safeTemp  } : {}),
+        ...(safeTopP  != null ? { top_p:               safeTopP  } : {}),
+      };
     } else {
-      // OpenAI-compatible format (OpenAI, Grok)
-      // Convert from Anthropic message format to OpenAI format
+      // OpenAI-compatible (OpenAI, Grok)
       requestHeaders['Authorization'] = `Bearer ${apiKey}`;
-      const { messages, system, max_tokens } = req.body;
       const oaiMessages = system
         ? [{ role: 'system', content: system }, ...messages]
         : messages;
       requestBody = {
-        model: req.body.model || DEFAULT_MODELS[provider],
+        model: model || DEFAULT_MODELS[provider],
         max_tokens: max_tokens || 1000,
         messages: oaiMessages,
+        ...(safeTemp  != null ? { temperature:         safeTemp  } : {}),
+        ...(safeTopP  != null ? { top_p:               safeTopP  } : {}),
+        ...(safeFreq  != null ? { frequency_penalty:   safeFreq  } : {}),
       };
     }
 
@@ -80,22 +80,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const data = await response.json();
 
-    if (!response.ok) {
-      return res.status(response.status).json(data);
-    }
+    if (!response.ok) return res.status(response.status).json(data);
 
-    // Normalize OpenAI response to Anthropic format so ARCHITECT.jsx
-    // doesn't need to know about provider differences
+    // Normalize OpenAI response to Anthropic format
     if (providerConfig.format === 'openai') {
-      const normalized = {
-        content: [{
-          type: 'text',
-          text: data.choices?.[0]?.message?.content || '',
-        }],
+      return res.status(200).json({
+        content: [{ type: 'text', text: data.choices?.[0]?.message?.content || '' }],
         stop_reason: data.choices?.[0]?.finish_reason || 'end_turn',
         model: data.model,
-      };
-      return res.status(200).json(normalized);
+      });
     }
 
     return res.status(200).json(data);
