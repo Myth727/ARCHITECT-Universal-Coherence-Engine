@@ -1,21 +1,23 @@
 {
-  "name": "@hudson-perry/architect-sdk",
-  "version": "1.5.29",
-  "description": "Real-time AI coherence scoring SDK — Kalman filtering, GARCH variance, SDE drift bands, behavioral signal detection",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "name": "architect-universal-coherence-engine",
+  "version": "2.0.0",
+  "private": true,
   "scripts": {
-    "build": "tsc",
-    "test": "echo \"No tests yet\" && exit 0"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
-  "keywords": ["llm", "coherence", "kalman", "garch", "sde", "ai-monitoring", "drift-detection"],
-  "author": "David Hudson & David Perry",
-  "license": "MIT",
+  "dependencies": {
+    "next": "14.2.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@xenova/transformers": "^2.17.2",
+    "recharts": "^2.12.7"
+  },
   "devDependencies": {
-    "typescript": "^5.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Myth727/Real-Time-LLM-Coherence-Harness-SDE-Bands-Zero-Drift-Lock-"
+    "typescript": "^5.4.5",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@types/node": "^20.14.2"
   }
 }

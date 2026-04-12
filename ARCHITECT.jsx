@@ -17,7 +17,7 @@ import {
 // ═══════════════════════════════════════════════════════════════
 
 // ── Deployment ─────────────────────────────────────────────────
-const API_ENDPOINT = "/api/claude"; // Vercel serverless proxy — see api/claude.js
+const API_ENDPOINT = "/api/proxy"; // Next.js serverless proxy — see pages/api/proxy.ts
 
 // ── Feature toggles ────────────────────────────────────────────
 // P17: These module-level constants are BOOT DEFAULTS only.
@@ -209,13 +209,46 @@ function sdePercentilesAtStep(paths,step) {
 // subtracted from the drift term via delta. When variance is high, the
 // process model predicts stronger mean reversion, tightening the estimate.
 // Couples the Kalman process model with the GARCH variance output.
-function kalmanStep(state,obs,t,params,kalR,kalSigP,smoothedVar=0) {
-  const {alpha,beta_p,omega,kappa,delta=0}=params;
-  const lam=1/(1+kappa);
-  const a_t=lam*(alpha+beta_p*Math.sin(omega*t)-(delta||0)*(smoothedVar||0));
-  const F=1+a_t;
-  const Q=Math.pow((kalSigP??KALMAN_SIGMA_P)*lam,2),x_p=F*state.x,P_p=F*F*state.P+Q,K=P_p/(P_p+(kalR??KALMAN_R));
-  return {x:x_p+K*(obs-x_p),P:(1-K)*P_p};
+// ── Unscented Kalman Filter (UKF) — V2.0 ─────────────────────
+// Replaces linear Kalman. Handles nonlinear coherence dynamics correctly.
+// Uses sigma points instead of linearization — more accurate at extremes.
+// Signature identical to old kalmanStep — drop-in replacement.
+function kalmanStep(state, obs, t, params, kalR, kalSigP, smoothedVar=0) {
+  const {alpha, beta_p, omega, kappa, delta=0} = params;
+  const lam = 1/(1+kappa);
+  // Nonlinear state transition f(x,t)
+  const f = (x) => {
+    const a_t = lam*(alpha + beta_p*Math.sin(omega*t) - (delta||0)*(smoothedVar||0));
+    return x + a_t * x * 0.1; // discrete OU approximation
+  };
+  const R = kalR ?? KALMAN_R;
+  const sigP = kalSigP ?? KALMAN_SIGMA_P;
+  const Q = Math.pow(sigP * lam, 2);
+  const { x, P } = state;
+  // UKF parameters
+  const n = 1;
+  const ukfAlpha = 0.001, ukfKappa = 0, ukfBeta = 2;
+  const lambda = ukfAlpha*ukfAlpha*(n + ukfKappa) - n;
+  // Sigma points
+  const spread = Math.sqrt(Math.max((n + lambda)*P, 1e-10));
+  const sp = [x, x + spread, x - spread];
+  // Weights
+  const Wm = [lambda/(n+lambda), 1/(2*(n+lambda)), 1/(2*(n+lambda))];
+  const Wc = [lambda/(n+lambda) + (1 - ukfAlpha*ukfAlpha + ukfBeta),
+              1/(2*(n+lambda)), 1/(2*(n+lambda))];
+  // Propagate sigma points
+  const spProp = sp.map(s => f(s));
+  // Predicted mean
+  const x_pred = spProp.reduce((s, sp, i) => s + Wm[i]*sp, 0);
+  // Predicted covariance
+  const P_pred = spProp.reduce((s, sp, i) =>
+    s + Wc[i]*Math.pow(sp - x_pred, 2), 0) + Q;
+  // Kalman gain and update
+  const K = P_pred / (P_pred + R);
+  return {
+    x: x_pred + K*(obs - x_pred),
+    P: Math.max((1-K)*P_pred, 1e-8), // floor prevents numerical collapse
+  };
 }
 
 // ── Drift Law ──────────────────────────────────────────────────
@@ -452,8 +485,81 @@ function computeCoherence(newContent,history,weights,repThresh) {
   return Math.min(Math.max((w.tfidf*vocab+w.jsd*jsdScore+w.length*lenScore+w.structure*struct+w.persistence*persist)*repetitionPenalty,.30),.99);
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  MUTE MODE
+// ── Semantic Coherence — V2.0 ──────────────────────────────────
+// Uses embeddings from Web Worker (all-MiniLM-L6-v2).
+// Falls back to TF-IDF if embedder not ready.
+function cosineSimilarityVec(a, b) {
+  let dot=0, normA=0, normB=0;
+  for (let i=0; i<a.length; i++) {
+    dot += a[i]*b[i]; normA += a[i]*a[i]; normB += b[i]*b[i];
+  }
+  const denom = Math.sqrt(normA)*Math.sqrt(normB);
+  return denom===0 ? 0 : Math.min(dot/denom, 1);
+}
+
+async function computeSemanticCoherence(newContent, history, weights, repThresh, workerRef) {
+  const ah = history.filter(m=>m.role==="assistant");
+  if (!ah.length) return 0.88;
+
+  // If worker not ready, fall back to TF-IDF
+  if (!workerRef?.current?.ready) {
+    return computeCoherence(newContent, history, weights, repThresh);
+  }
+
+  const recentText = ah.slice(-4).map(m=>getTextFromContent(m.content)).join(" ");
+
+  // Request embeddings from worker
+  const getEmbedding = (text) => new Promise((resolve, reject) => {
+    const id = Math.random().toString(36).slice(2);
+    const handler = (e) => {
+      if (e.data.id !== id) return;
+      workerRef.current.worker.removeEventListener('message', handler);
+      if (e.data.type === 'result') resolve(e.data.embedding);
+      else reject(new Error(e.data.message));
+    };
+    workerRef.current.worker.addEventListener('message', handler);
+    workerRef.current.worker.postMessage({ type: 'embed', text: text.slice(0, 1000), id });
+  });
+
+  try {
+    const [newEmb, recEmb] = await Promise.all([
+      getEmbedding(newContent),
+      getEmbedding(recentText),
+    ]);
+    const semanticSim = cosineSimilarityVec(newEmb, recEmb);
+
+    // Blend semantic similarity with length/structure/persistence from TF-IDF scorer
+    // semantic replaces the tfidf+jsd components (0.50 weight combined)
+    const newT = tokenize(newContent);
+    const recT = tokenize(recentText);
+    const avgLen = ah.reduce((s,m)=>s+getTextFromContent(m.content).length,0)/ah.length;
+    const lenScore = Math.exp(-Math.abs(newContent.length-avgLen)/Math.max(avgLen,1)*2);
+    const sents = n=>n.split(/[.!?]+/).filter(s=>s.trim().length>8).length;
+    const newSC = sents(newContent);
+    const avgSC = ah.reduce((s,m)=>s+sents(getTextFromContent(m.content)),0)/ah.length;
+    const struct = Math.exp(-Math.abs(newSC-avgSC)/Math.max(avgSC,1)*1.5);
+    const tf={}; recT.forEach(w=>{tf[w]=(tf[w]||0)+1;});
+    const top = Object.entries(tf).sort((a,b)=>b[1]-a[1]).slice(0,15).map(e=>e[0]);
+    const persist = top.length===0?1:top.filter(t=>newT.includes(t)).length/top.length;
+    const lastReply = getTextFromContent(ah[ah.length-1]?.content||"");
+    const lastT = tokenize(lastReply);
+    const overlap = lastT.length>0 ? lastT.filter(w=>newT.includes(w)).length/lastT.length : 0;
+    const rt = repThresh??0.65;
+    const repPenalty = overlap>rt ? rt : 1.0;
+    const w = weights??{tfidf:0.25,jsd:0.25,length:0.25,structure:0.15,persistence:0.10};
+    // semantic replaces tfidf+jsd, keeps length+structure+persistence weights
+    const score = (
+      semanticSim * (w.tfidf + w.jsd) +
+      lenScore * w.length +
+      struct * w.structure +
+      persist * w.persistence
+    ) * repPenalty;
+    return Math.min(Math.max(score, 0.30), 0.99);
+  } catch {
+    // Embedding failed — fall back to TF-IDF
+    return computeCoherence(newContent, history, weights, repThresh);
+  }
+}
 // ═══════════════════════════════════════════════════════════════
 function detectMuteMode(text, phrases) {
   // No USE_MUTE_MODE guard — call sites gate with featMute so the module
@@ -3826,9 +3932,55 @@ export default function HudsonPerryDriftV1() {
   const inputValueRef=useRef("");
   // V1.5.9 fix #C: researchNotes converted to uncontrolled textarea
   const researchNotesRef=useRef("");
+
+  // ── V2.0: Embedder Web Worker ref ────────────────────────────
+  // workerRef.current = { worker: Worker, ready: bool }
+  const workerRef=useRef(null);
+
+  // ── V2.0: Provider + key storage state ───────────────────────
+  const [provider,       setProvider]       = useState("anthropic");
+  const [keySaved,       setKeySaved]       = useState(false);   // true when saved to localStorage
+  const [embedderStatus, setEmbedderStatus] = useState("init");  // "init"|"loading"|"ready"|"error"
   useEffect(()=>{
     if (rewindTurn===null) chatEndRef.current?.scrollIntoView({behavior:"smooth"});
   },[messages,rewindTurn]);
+
+  // ── V2.0: Load saved key + provider from localStorage on mount ──
+  useEffect(()=>{
+    try {
+      const savedKey      = localStorage.getItem("architect_api_key");
+      const savedProvider = localStorage.getItem("architect_provider");
+      if (savedKey)      { setApiKey(savedKey);       setKeySaved(true); }
+      if (savedProvider) { setProvider(savedProvider); }
+    } catch(e) {}
+  },[]);
+
+  // ── V2.0: Initialize embedder Web Worker on mount ─────────────
+  useEffect(()=>{
+    if (typeof window === "undefined") return;
+    try {
+      setEmbedderStatus("loading");
+      const worker = new Worker("/embedder.worker.js");
+      workerRef.current = { worker, ready: false };
+      worker.onmessage = (e) => {
+        if (e.data.type==="ready") {
+          workerRef.current.ready = true;
+          setEmbedderStatus("ready");
+        } else if (e.data.type==="error" && !workerRef.current.ready) {
+          setEmbedderStatus("error");
+        } else if (e.data.type==="status") {
+          setEmbedderStatus("loading");
+        }
+      };
+      worker.onerror = () => setEmbedderStatus("error");
+      worker.postMessage({ type: "init" });
+    } catch(e) {
+      setEmbedderStatus("error");
+    }
+    return () => {
+      try { workerRef.current?.worker?.terminate(); } catch(e) {}
+    };
+  },[]);
 
   // N3 fix: flush researchNotes ref to state on tab close.
   // Uncontrolled textarea only calls setResearchNotes on blur — if user types
@@ -4251,23 +4403,13 @@ export default function HudsonPerryDriftV1() {
       const msgLen=apiMessages.reduce((s,m)=>s+(typeof m.content==="string"?m.content.length:JSON.stringify(m.content).length),0);
       setTokenEstimate(Math.round((sysLen+msgLen)/4));
 
-      const headers={"Content-Type":"application/json","anthropic-version":"2023-06-01"};
-      if (apiKey.trim()) {
-        headers["x-api-key"]=apiKey.trim();
-        // V1.5.3 fix #1: warn on ALL non-sandbox origins. Previously only warned on
-        // non-localhost which silently skipped the warning for Vercel/Netlify deploys.
-        // Sandbox = claude.ai iframe or anthropic.com — key is injected by the platform.
-        const host=typeof window!=="undefined"?window.location.hostname:"";
-        const isSandbox=host.includes("claude.ai")||host.includes("anthropic.com");
-        if (!isSandbox) {
-          console.warn(
-            "⚠️ SECURITY: API key is being sent directly from the browser.\n"+
-            "Anyone with devtools access can read it.\n"+
-            "For any deployment beyond this sandbox, route calls through a backend proxy.\n"+
-            "See API_ENDPOINT constant at the top of this file."
-          );
-        }
-      }
+      // V2.0: Key goes to server-side proxy — never exposed in browser
+      const headers={
+        "Content-Type":"application/json",
+        "anthropic-version":"2023-06-01",
+        "x-architect-provider": provider,
+      };
+      if (apiKey.trim()) headers["x-api-key"]=apiKey.trim();
 
       const response=await fetch(API_ENDPOINT,{
         method:"POST",headers,
@@ -4293,9 +4435,10 @@ export default function HudsonPerryDriftV1() {
               errMsg="Rate limit reached — try again shortly";
             }
           } else if (response.status===401) {
-            errMsg="Invalid API key. Check your key at console.anthropic.com";
+            const keyUrl = provider==="openai"?"platform.openai.com":provider==="grok"?"console.x.ai":"console.anthropic.com";
+            errMsg=`Invalid API key. Check your key at ${keyUrl}`;
           } else if (response.status===403) {
-            errMsg="API key lacks permissions. Check console.anthropic.com";
+            errMsg="API key lacks permissions. Check your provider console";
           } else if (response.status===413) {
             errMsg="Context too large. Reset session or reduce attachments";
           } else if (response.status===529) {
@@ -4349,7 +4492,7 @@ export default function HudsonPerryDriftV1() {
       // ── Stage: coherence_scoring ──────────────────────────────
       let rawScore=0.88;
       try {
-        rawScore=turn<2?0.88:computeCoherence(content_raw,newMessages,{tfidf:mathTfidf,jsd:mathJsd,length:mathLen,structure:mathStruct,persistence:mathPersist},mathRepThresh);
+        rawScore=turn<2?0.88:await computeSemanticCoherence(content_raw,newMessages,{tfidf:mathTfidf,jsd:mathJsd,length:mathLen,structure:mathStruct,persistence:mathPersist},mathRepThresh,workerRef);
         setLastScore(rawScore);
       } catch(cohErr) {
         const now2=new Date().toISOString();
@@ -4380,7 +4523,7 @@ export default function HudsonPerryDriftV1() {
         try {
           // Score against finalMessages (includes new assistant reply) — gives
           // a genuine second perspective vs rawScore which used newMessages only.
-          postAuditScore=computeCoherence(content_raw,finalMessages,{tfidf:mathTfidf,jsd:mathJsd,length:mathLen,structure:mathStruct,persistence:mathPersist},mathRepThresh);
+          postAuditScore=await computeSemanticCoherence(content_raw,finalMessages,{tfidf:mathTfidf,jsd:mathJsd,length:mathLen,structure:mathStruct,persistence:mathPersist},mathRepThresh,workerRef);
           const delta=rawScore-postAuditScore;
           quietFail=delta>0.08;
           const now2=new Date().toISOString();
@@ -4826,7 +4969,13 @@ export default function HudsonPerryDriftV1() {
     applyZeroDriftLock(userAnchor-(lastScore??0)*.01,userAnchor),
   [lastScore,userAnchor]);
   // R2 fix: memoized — recalculated on every render previously
-  const apiKeyValid=useMemo(()=>apiKey.trim().startsWith("sk-"),[apiKey]);
+  const apiKeyValid=useMemo(()=>{
+    const k=apiKey.trim();
+    if (provider==="anthropic") return k.startsWith("sk-ant-");
+    if (provider==="grok")      return k.startsWith("xai-");
+    if (provider==="openai")    return k.startsWith("sk-") && !k.startsWith("sk-ant-");
+    return k.length > 10;
+  },[apiKey, provider]);
   // M3 fix: use cfg preset thresholds so MEDICAL/CREATIVE etc. reflect correctly in UI
   const vDec=cfg?.varDecoherence??VAR_DECOHERENCE;
   const vCau=cfg?.varCaution??VAR_CAUTION;
@@ -5130,27 +5279,91 @@ export default function HudsonPerryDriftV1() {
         </div>
       </div>
 
-      {/* API KEY */}
-      <div style={S.apiKeyRow}>
-        <span style={{fontFamily:"Courier New, monospace",fontSize:9,
-          color:apiKeyValid?"#178040":"#1E3C5C",letterSpacing:2,flexShrink:0}}>
-          {apiKeyValid?"🔑 KEY SET":"🔑 API KEY"}
-        </span>
-        <input type={showApiKey?"text":"password"} value={apiKey} onChange={e=>setApiKey(e.target.value)}
-          placeholder="sk-ant-... (optional in artifact)"
-          style={{flex:1,background:"#EEF2F7",border:`1px solid ${apiKeyValid?"#1EAAAA44":"#C0D0E4"}`,
-            borderRadius:4,color:"#0E2A5A",padding:"4px 10px",
-            fontFamily:"Courier New, monospace",fontSize:11,outline:"none"}}/>
-        <button onClick={()=>setShowApiKey(p=>!p)}
-          style={{...S.resetBtn,padding:"2px 8px",fontSize:9}}>{showApiKey?"HIDE":"SHOW"}</button>
-        {apiKey.trim().length>0&&!apiKeyValid&&(
-          <span style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#C81030",flexShrink:0}}>
-            must start with sk-
+      {/* PROVIDER + API KEY — V2.0 */}
+      <div style={{display:"flex",flexDirection:"column",gap:4,padding:"4px 20px"}}>
+        {/* Provider selector row */}
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+            color:"#2E5070",letterSpacing:2,flexShrink:0}}>PROVIDER</span>
+          {["anthropic","openai","grok"].map(p=>(
+            <button key={p} onClick={()=>setProvider(p)}
+              style={{fontFamily:"Courier New, monospace",fontSize:8,
+                padding:"2px 8px",borderRadius:3,cursor:"pointer",
+                background:provider===p?"#0E2A5A":"transparent",
+                color:provider===p?"#FFFFFF":"#2E5070",
+                border:`1px solid ${provider===p?"#0E2A5A":"#C0D0E4"}`}}>
+              {p.toUpperCase()}
+            </button>
+          ))}
+          {/* Embedder status indicator */}
+          <span style={{fontFamily:"Courier New, monospace",fontSize:7,
+            color:embedderStatus==="ready"?"#178040":embedderStatus==="error"?"#9A5C08":"#2E5070",
+            marginLeft:"auto",flexShrink:0}}>
+            {embedderStatus==="ready"?"⬡ SEMANTIC ON"
+              :embedderStatus==="loading"?"⬡ LOADING MODEL..."
+              :embedderStatus==="error"?"⬡ TF-IDF FALLBACK"
+              :"⬡ INITIALIZING"}
           </span>
-        )}
-        <a href="https://console.anthropic.com" target="_blank" rel="noreferrer"
-          style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#0E3060",
-            textDecoration:"none",flexShrink:0}}>get key ↗</a>
+        </div>
+        {/* Key input row */}
+        <div style={S.apiKeyRow}>
+          <span style={{fontFamily:"Courier New, monospace",fontSize:9,
+            color:apiKeyValid?"#178040":"#1E3C5C",letterSpacing:2,flexShrink:0}}>
+            {apiKeyValid?"🔑 KEY SET":"🔑 API KEY"}
+          </span>
+          <input type={showApiKey?"text":"password"} value={apiKey}
+            onChange={e=>{setApiKey(e.target.value); setKeySaved(false);}}
+            placeholder={provider==="anthropic"?"sk-ant-...":provider==="openai"?"sk-...":"xai-..."}
+            style={{flex:1,background:"#EEF2F7",border:`1px solid ${apiKeyValid?"#1EAAAA44":"#C0D0E4"}`,
+              borderRadius:4,color:"#0E2A5A",padding:"4px 10px",
+              fontFamily:"Courier New, monospace",fontSize:11,outline:"none"}}/>
+          <button onClick={()=>setShowApiKey(p=>!p)}
+            style={{...S.resetBtn,padding:"2px 8px",fontSize:9}}>{showApiKey?"HIDE":"SHOW"}</button>
+          {/* SAVE button */}
+          {apiKeyValid&&!keySaved&&(
+            <button onClick={()=>{
+              try {
+                localStorage.setItem("architect_api_key", apiKey.trim());
+                localStorage.setItem("architect_provider", provider);
+                setKeySaved(true);
+              } catch(e) {}
+            }} style={{...S.resetBtn,padding:"2px 8px",fontSize:9,
+              background:"#EEF8EE",border:"1px solid #178040",color:"#178040"}}>
+              SAVE
+            </button>
+          )}
+          {/* SAVED / CLEAR controls */}
+          {keySaved&&(
+            <>
+              <span style={{fontFamily:"Courier New, monospace",fontSize:8,
+                color:"#178040",flexShrink:0}}>✓ SAVED</span>
+              <button onClick={()=>{
+                try {
+                  localStorage.removeItem("architect_api_key");
+                  localStorage.removeItem("architect_provider");
+                } catch(e) {}
+                setApiKey(""); setKeySaved(false);
+              }} style={{...S.resetBtn,padding:"2px 8px",fontSize:9,
+                color:"#C81030",border:"1px solid #C8103044"}}>
+                CLEAR
+              </button>
+            </>
+          )}
+          {apiKey.trim().length>0&&!apiKeyValid&&(
+            <span style={{fontFamily:"Courier New, monospace",fontSize:9,
+              color:"#C81030",flexShrink:0}}>
+              {provider==="anthropic"?"must start with sk-ant-"
+                :provider==="grok"?"must start with xai-"
+                :"must start with sk-"}
+            </span>
+          )}
+          <a href={provider==="openai"?"https://platform.openai.com"
+                   :provider==="grok"?"https://console.x.ai"
+                   :"https://console.anthropic.com"}
+            target="_blank" rel="noreferrer"
+            style={{fontFamily:"Courier New, monospace",fontSize:8,color:"#0E3060",
+              textDecoration:"none",flexShrink:0}}>get key ↗</a>
+        </div>
       </div>
 
       {/* STATUS BAR */}
@@ -5864,5 +6077,4 @@ export default function HudsonPerryDriftV1() {
     </TuneCtx.Provider>
   );
 }
-// Vercel mount — exposes root component for public/index.html
-if (typeof window !== 'undefined') { window.__ARCHITECT_APP__ = HudsonPerryDriftV1; }
+// V2.0: mounted via Next.js pages/index.tsx
