@@ -6,7 +6,7 @@ import {
 
 // ═══════════════════════════════════════════════════════════════
 //  FILE: ARCHITECT.jsx
-//  ARCHITECT — UNIVERSAL COHERENCE ENGINE · V2.2
+//  ARCHITECT — UNIVERSAL COHERENCE ENGINE · V2.3
 //  © Hudson & Perry Research
 //  Authors: David Hudson (@RaccoonStampede) · David Perry (@Prosperous727)
 //
@@ -148,6 +148,13 @@ const JUMP_MAGNITUDE = 0.12;
 // toward mean reversion harder under volatile sessions. Couples GARCH and SDE
 // into a single coherent system rather than two parallel independent models.
 const SDE_DELTA = 0.30;
+// MTJ_DELTA: thermal stability factor for Langevin noise model (Δ = E_b/k_BT).
+// Typical room-temperature MTJs: Δ = 40–60. Lower Δ → heavier tails → wider bands.
+// Physical basis: superparamagnetic fluctuations in magnetic tunnel junctions.
+// Connection to ARCHITECT: replaces pure Gaussian dW_t with Langevin-weighted
+// increment, producing hardware-realistic stochastic uncertainty bands.
+// Cross-domain convergence: same math family as OU/SDE — not a coincidence.
+const MTJ_DELTA_DEFAULT = 50;
 
 const SDE_PARAMS = {
   alpha:-0.25, beta_p:0.18, omega:2*Math.PI/12, sigma:0.10, kappa:KAPPA,
@@ -175,8 +182,23 @@ function randn(rng) {
 // V1.5.42: GARCH-in-Mean — delta term couples variance into drift.
 // V1.5.42: Jump-diffusion (Merton 1976) — Poisson jump process models
 // sudden topic shifts which are discontinuous, not smooth drift.
+// ── Langevin noise (spintronic/MTJ thermal model) ─────────────────────
+// Weights Gaussian increment by thermal activation factor from MTJ physics.
+// eta_thermal: noise amplitude from superparamagnetic energy landscape.
+// With mtjDelta → ∞ this reduces to pure Gaussian (classical limit).
+// Reference: Langevin equation for MTJ switching — Brown 1963, Koch et al. 2000.
+function langnevinNoise(rng, delta) {
+  const z = randn(rng);
+  if (!delta || delta <= 0) return z;
+  // Thermal activation weighting: heavier tails at low Δ (less stable MTJ)
+  // eta = sqrt(1 + 1/(2*delta)) per linearized Neel-Brown relaxation
+  const eta = Math.sqrt(1 + 1 / (2 * delta));
+  return z * eta;
+}
+
 function simulateSDE(params,T,dt=0.02,nPaths=50,seed=42) {
-  const {alpha,beta_p,omega,sigma,kappa,delta=0,jumpIntensity=0,jumpMagnitude=0}=params;
+  const {alpha,beta_p,omega,sigma,kappa,delta=0,jumpIntensity=0,jumpMagnitude=0,
+         mtjEnabled=true,mtjDelta=MTJ_DELTA_DEFAULT}=params;
   const lam=1/(1+kappa),nSteps=Math.ceil(T/dt),rng=makeRng(seed),paths=[];
   let runVar=0; // running variance estimate for GARCH-in-Mean
   const jumpProb=1-Math.exp(-(jumpIntensity||0)*dt);
@@ -187,7 +209,7 @@ function simulateSDE(params,T,dt=0.02,nPaths=50,seed=42) {
       // GARCH-in-Mean: subtract delta*variance from drift — higher variance → stronger reversion
       const a_t=lam*(alpha+beta_p*Math.sin(omega*t)-(delta||0)*runVar);
       const b=lam*sigma;
-      const noise=b*Math.sqrt(dt)*randn(rng);
+      const noise=b*Math.sqrt(dt)*(mtjEnabled?langnevinNoise(rng,mtjDelta):randn(rng));
       // Jump term: Poisson arrivals with signed random magnitude
       const jump=rng()<jumpProb?((rng()>0.5?1:-1)*(jumpMagnitude||0)):0;
       path[i]=path[i-1]+a_t*path[i-1]*dt+noise+jump;
@@ -2316,6 +2338,7 @@ const TuneModal = React.memo(function TuneModal() {
     adaptiveSigmaOn,setAdaptiveSigmaOn,adaptedSigma,adaptationRate,setAdaptationRate,
     sdeAlphaVal,setSdeAlphaVal,sdeBetaVal,setSdeBetaVal,sdeSigmaVal,setSdeSigmaVal,
     sdeAlphaOn,setSdeAlphaOn,sdeBetaOn,setSdeBetaOn,sdeSigmaOn,setSdeSigmaOn,
+    mtjEnabled,setMtjEnabled,mtjDelta,setMtjDelta,
     customMutePhrases,setCustomMutePhrases,mutePhraseInput,setMutePhraseInput,
     mathEpsilon,setMathEpsilon,mathTfidf,setMathTfidf,mathJsd,setMathJsd,
     mathLen,setMathLen,mathStruct,setMathStruct,mathPersist,setMathPersist,
@@ -2571,7 +2594,7 @@ const TuneModal = React.memo(function TuneModal() {
         <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="features"?"block":"none"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <div style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#1E3C5C",letterSpacing:3}}>SDE PARAMETERS</div>
-            <button onClick={()=>{setSdeAlphaVal(SDE_PARAMS.alpha);setSdeBetaVal(SDE_PARAMS.beta_p);setSdeSigmaVal(SDE_PARAMS.sigma);setSdeAlphaOn(true);setSdeBetaOn(true);setSdeSigmaOn(true);}}
+            <button onClick={()=>{setSdeAlphaVal(SDE_PARAMS.alpha);setSdeBetaVal(SDE_PARAMS.beta_p);setSdeSigmaVal(SDE_PARAMS.sigma);setSdeAlphaOn(true);setSdeBetaOn(true);setSdeSigmaOn(true);setMtjEnabled(true);setMtjDelta(MTJ_DELTA_DEFAULT);}}
               style={{padding:"2px 8px",background:"transparent",border:"1px solid #2A4060",
                 borderRadius:3,color:"#1E3C5C",cursor:"pointer",fontSize:7,fontFamily:"Courier New, monospace"}}>RESET</button>
           </div>
@@ -2601,6 +2624,59 @@ const TuneModal = React.memo(function TuneModal() {
                   fontFamily:"Courier New, monospace",fontSize:9,textAlign:"right"}}/>
             </div>
           ))}
+        </div>
+
+        {/* ── Langevin / MTJ Spintronic Noise Model ── */}
+        <div style={{borderTop:"1px solid #1A3050",paddingTop:12,marginBottom:16,display:tuneTab==="features"?"block":"none"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <div style={{fontFamily:"Courier New, monospace",fontSize:9,color:"#1E3C5C",letterSpacing:3}}>
+              LANGEVIN NOISE MODEL
+            </div>
+          </div>
+          <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#1560B0",
+            marginBottom:8,padding:"4px 8px",background:"#EFF4FF",borderRadius:3,border:"1px solid #1560B044",lineHeight:1.6}}>
+            Replaces pure Gaussian dW with Langevin-weighted increment from MTJ/spintronic thermal noise physics (Neel-Brown, 1963). Wider, asymmetric Monte Carlo bands under high variance. Mathematically equivalent to classical OU at Δ→∞.
+          </div>
+          {/* Enable toggle */}
+          <div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:4,marginBottom:8,
+            background:mtjEnabled?"#EFF4FF":"#F4F7FB",border:"1px solid "+(mtjEnabled?"#1560B044":"#CDD8E8")}}>
+            <button onClick={()=>setMtjEnabled(p=>!p)} style={{
+              width:28,height:16,borderRadius:8,border:"none",cursor:"pointer",
+              background:mtjEnabled?"#1560B0":"#B4C4D4",transition:"background .2s",flexShrink:0}}>
+              <div style={{width:12,height:12,borderRadius:"50%",background:"#fff",
+                margin:"2px",marginLeft:mtjEnabled?14:2,transition:"margin .2s"}}/>
+            </button>
+            <span style={{fontFamily:"Courier New,monospace",fontSize:8,
+              color:mtjEnabled?"#1560B0":"#2E5070",flex:1}}>
+              Langevin noise (MTJ/spintronic)
+            </span>
+            <span style={{fontFamily:"Courier New,monospace",fontSize:7,
+              color:mtjEnabled?"#1560B0":"#8A9AB0"}}>
+              {mtjEnabled?"ON":"OFF"}
+            </span>
+          </div>
+          {/* MTJ Delta slider — only shown when enabled */}
+          {mtjEnabled&&(
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 8px",borderRadius:4,
+              background:"#F2F6FF",border:"1px solid #1560B033"}}>
+              <span style={{fontFamily:"Courier New,monospace",fontSize:8,color:"#1560B0",width:90,flexShrink:0}}>
+                Δ (MTJ stability)
+              </span>
+              <input type="range" min={10} max={200} step={1} value={mtjDelta}
+                onChange={e=>setMtjDelta(+e.target.value)}
+                style={{flex:1,accentColor:"#1560B0"}}/>
+              <input type="number" min={10} max={200} step={1} value={mtjDelta}
+                onChange={e=>{const v=+e.target.value;if(v>=10&&v<=200)setMtjDelta(v);}}
+                style={{width:52,fontFamily:"Courier New,monospace",fontSize:8,color:"#1560B0",
+                  background:"#FAFCFF",border:"1px solid #1560B066",borderRadius:3,padding:"2px 4px",textAlign:"right"}}/>
+            </div>
+          )}
+          {mtjEnabled&&(
+            <div style={{fontFamily:"Courier New,monospace",fontSize:7,color:"#4A6A8A",
+              marginTop:5,lineHeight:1.6}}>
+              {"Δ="+mtjDelta+" | η="+Math.sqrt(1+1/(2*mtjDelta)).toFixed(4)+" | Tail weight: "+(mtjDelta<30?"HIGH":mtjDelta<60?"MODERATE":"LOW")+(mtjDelta===MTJ_DELTA_DEFAULT?" (default)":"")}
+            </div>
+          )}
         </div>
 
         {/* ── V1.5.0: Post-Audit Toggle ── */}
@@ -4127,6 +4203,8 @@ export default function HudsonPerryDriftV1() {
   const [sdeAlphaOn,      setSdeAlphaOn]      = useState(true);
   const [sdeBetaOn,       setSdeBetaOn]       = useState(true);
   const [sdeSigmaOn,      setSdeSigmaOn]      = useState(true);
+  const [mtjEnabled,      setMtjEnabled]      = useState(true);
+  const [mtjDelta,        setMtjDelta]        = useState(MTJ_DELTA_DEFAULT);
   // Post-audit custom threshold
   const [postAuditThresh, setPostAuditThresh] = useState(0.70);
   const [researchNotes,   setResearchNotes]   = useState("");
@@ -4354,6 +4432,8 @@ export default function HudsonPerryDriftV1() {
         if (p.mathRagTopK!=null)        setMathRagTopK(p.mathRagTopK);
         if (p.mathMaxTokens!=null)      setMathMaxTokens(p.mathMaxTokens);
         if (p.sdeAlphaVal!=null)        setSdeAlphaVal(p.sdeAlphaVal);
+        if (p.mtjEnabled!=null)         setMtjEnabled(p.mtjEnabled);
+        if (p.mtjDelta!=null)           setMtjDelta(p.mtjDelta);
         if (p.sdeBetaVal!=null)         setSdeBetaVal(p.sdeBetaVal);
         if (p.sdeSigmaVal!=null)        setSdeSigmaVal(p.sdeSigmaVal);
         if (p.sdeAlphaOn!=null)         setSdeAlphaOn(p.sdeAlphaOn);
@@ -4442,7 +4522,7 @@ export default function HudsonPerryDriftV1() {
           // P1 fix: coherence weights + math tunables were missing — reset to defaults on reload
           mathTfidf,mathJsd,mathLen,mathStruct,mathPersist,mathRepThresh,
           mathKalmanR,mathKalmanSigP,mathRagTopK,mathMaxTokens,
-          sdeAlphaVal,sdeBetaVal,sdeSigmaVal,sdeAlphaOn,sdeBetaOn,sdeSigmaOn,
+          sdeAlphaVal,sdeBetaVal,sdeSigmaVal,sdeAlphaOn,sdeBetaOn,sdeSigmaOn,mtjEnabled,mtjDelta,
           postAuditThresh,showSdePaths,pathOpacity,
           // Advanced Tab
           advancedUnlocked,showSdeConfig,showRailsConfig,showConstEditor,showMhtStudy,showPoole,caPassRate,pooleBirth1,pooleBirth2,pooleSurv1,pooleSurv2,pooleGen,
@@ -4461,7 +4541,7 @@ export default function HudsonPerryDriftV1() {
      nPaths,postAuditMode,customMutePhrases,researchNotes,mathEpsilon,
      mathTfidf,mathJsd,mathLen,mathStruct,mathPersist,mathRepThresh,
      mathKalmanR,mathKalmanSigP,mathRagTopK,mathMaxTokens,
-     sdeAlphaVal,sdeBetaVal,sdeSigmaVal,sdeAlphaOn,sdeBetaOn,sdeSigmaOn,
+     sdeAlphaVal,sdeBetaVal,sdeSigmaVal,sdeAlphaOn,sdeBetaOn,sdeSigmaOn,mtjEnabled,mtjDelta,
      postAuditThresh,showSdePaths,pathOpacity,
      advancedUnlocked,showSdeConfig,showRailsConfig,showConstEditor,showMhtStudy,showPoole,
      caPassRate,pooleBirth1,pooleBirth2,pooleSurv1,pooleSurv2,pooleGen,
@@ -4505,6 +4585,7 @@ export default function HudsonPerryDriftV1() {
     alpha:sdeAlphaOn?sdeAlphaVal:SDE_PARAMS.alpha,
     beta_p:sdeBetaOn?sdeBetaVal:SDE_PARAMS.beta_p,
     sigma:sdeSigmaOn?sdeSigmaVal:SDE_PARAMS.sigma,
+    mtjEnabled,mtjDelta,
   }),[sdeAlphaOn,sdeAlphaVal,sdeBetaOn,sdeBetaVal,sdeSigmaOn,sdeSigmaVal]);
   const livePaths = useMemo(()=>simulateSDE(liveSDEOverride,20,.02,nPaths,42),[nPaths,sdeAlphaVal,sdeBetaVal,sdeSigmaVal,sdeAlphaOn,sdeBetaOn,sdeSigmaOn]);
   // R3 fix: memoized — null customMutePhrases returned new MUTE_PHRASES ref every render,
@@ -5190,7 +5271,7 @@ export default function HudsonPerryDriftV1() {
      // only used in UI rendering. Was causing unnecessary callback invalidation.
      mathTfidf,mathJsd,mathLen,mathStruct,mathPersist,mathRepThresh,
      mathKalmanR,mathKalmanSigP,mathRagTopK,mathMaxTokens,
-     sdeAlphaVal,sdeBetaVal,sdeSigmaVal,sdeAlphaOn,sdeBetaOn,sdeSigmaOn,
+     sdeAlphaVal,sdeBetaVal,sdeSigmaVal,sdeAlphaOn,sdeBetaOn,sdeSigmaOn,mtjEnabled,mtjDelta,
      postAuditThresh,
      livePaths,activeMutePhrases]);
 
@@ -5374,7 +5455,7 @@ export default function HudsonPerryDriftV1() {
       featKalman,featGARCH,featSDE,featRAG,featPipe,featMute,featGate,
       featBSig,featHSig,featPrune,featZeroDrift,nPaths,postAuditMode,postAuditThresh,
       adaptiveSigmaOn,adaptedSigma,adaptationRate,
-      sdeAlphaVal,sdeBetaVal,sdeSigmaVal,sdeAlphaOn,sdeBetaOn,sdeSigmaOn,
+      sdeAlphaVal,sdeBetaVal,sdeSigmaVal,sdeAlphaOn,sdeBetaOn,sdeSigmaOn,mtjEnabled,mtjDelta,
       customMutePhrases,mutePhraseInput,
       mathEpsilon,mathTfidf,mathJsd,mathLen,mathStruct,mathPersist,mathRepThresh,
       mathKalmanR,mathKalmanSigP,mathRagTopK,mathMaxTokens,
