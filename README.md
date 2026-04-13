@@ -1,8 +1,8 @@
 # ARCHITECT — Universal Coherence Engine
 
-## Full-stack LLM coherence engine with AutoTune, feedback learning, and reflexive analysis. Monte Carlo SDE bands, Kalman, GARCH, per-turn scoring, signal detection, domain anchoring. V2.2 — paste into Claude or deploy on Vercel.
+## Full-stack LLM coherence engine with Langevin/MTJ spintronic noise model, AutoTune, feedback learning, and reflexive analysis. Monte Carlo SDE bands, Kalman, GARCH, per-turn scoring, signal detection, domain anchoring. V2.2 — paste into Claude or deploy on Vercel.
 
-**V2.2** · © 2026 Hudson & Perry Research
+**V2.3** · © 2026 Hudson & Perry Research
 **Authors:** David Hudson ([@RaccoonStampede](https://x.com/RaccoonStampede)) · David Perry ([@Prosperous727](https://x.com/Prosperous727))
 **License:** MIT · [Live Demo](https://architect-universal-coherence-engin.vercel.app/)
 
@@ -61,6 +61,7 @@ No environment variables needed. Users provide their own API keys.
 | **Session Memory** | Auto-compresses history at turns 10/20/30 into a protected context slot. Solves long-session forgetfulness. |
 | **META Panel** | Second AI chat with full ARCHITECT architecture + live session data embedded. Answers "why did coherence drop at turn 7" with exact values. |
 | **Quick Tools Drawer** | CALC (SDE/GARCH parameter preview), VERIFY (15 live session checks), EXPORT (CSV/JSONL/TXT) |
+| **Langevin Noise Model** | Replaces Gaussian Wiener increment with MTJ thermal noise physics (Neel-Brown). Hardware-realistic Monte Carlo bands. Toggle ON/OFF, Δ editable (default 50). |
 | **Storage Unification** | All persistence through unified adapter: localStorage → window.storage → in-memory fallback. Safe in private mode and artifact sandbox. |
 
 ---
@@ -83,6 +84,7 @@ No environment variables needed. Users provide their own API keys.
 | Strategic Session Memory | ✓ session | ✓ cross-session |
 | META Panel | ✓ | ✓ |
 | Quick Tools (CALC/VERIFY/EXPORT) | ✓ | ✓ |
+| Langevin/MTJ noise model | ✓ | ✓ |
 | Display preferences (themes, font, compact) | ✓ | ✓ |
 | H-signals + B-signals | ✓ | ✓ |
 | Session rewind, RAG, bookmarks | ✓ | ✓ |

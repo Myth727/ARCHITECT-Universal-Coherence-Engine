@@ -1,5 +1,5 @@
 # ARCHITECT — Universal Coherence Engine · GitHub Setup
-*Version 2.2*
+*Version 2.3*
 
 ## Quick Start (Artifact — no install needed)
 

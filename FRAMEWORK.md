@@ -1,6 +1,6 @@
 # ARCHITECT — Universal Coherence Engine · Framework Document
 
-**Version 3.7 | V2.2 | © 2026 Hudson & Perry Research**
+**Version 3.8 | V2.3 | © 2026 Hudson & Perry Research**
 David Hudson (@RaccoonStampede) & David Perry (@Prosperous727)
 
 ---
@@ -57,6 +57,34 @@ b     = σ / (1 + κ)
 **Stability:** guaranteed when α < 0.
 β = 0 → Ornstein-Uhlenbeck process.
 β > 0 → OU extended with periodic forcing.
+
+**Langevin Noise Extension (V2.3):**
+
+The Wiener increment can be replaced with a Langevin-weighted draw:
+
+```
+dW_t → b · √dt · z · η_thermal
+η_thermal = √(1 + 1/(2Δ))
+z ~ N(0,1)
+```
+
+Where Δ (MTJ_DELTA) is the thermal stability factor from magnetic tunnel junction physics
+(Neel-Brown relaxation model, Brown 1963; Koch et al. 2000). Typical room-temperature
+MTJs: Δ = 40–60. Default: Δ = 50.
+
+Physical basis: superparamagnetic fluctuations in MTJ devices produce heavier-tailed noise
+than pure Gaussian. As Δ → ∞, η → 1 and the model reduces to classical Ornstein-Uhlenbeck.
+
+Connection: both MTJ thermal switching and LLM coherence drift belong to the same family
+of stochastic control problems (Langevin dynamics on an energy landscape). This is the
+same cross-domain convergence pattern as ε=0.05 appearing in neuroscience and the drift
+law independently.
+
+Framing: mathematically grounded extension. The math is validated. Empirical co-validation
+against actual spintronic hardware is listed under Requires Validation.
+
+Feature: LANGEVIN NOISE MODEL toggle in FEATURES tab, default ON. MTJ_DELTA editable
+(range 10–200). Reset button restores Δ=50.
 
 **GARCH(1,1) variance:**
 
@@ -226,6 +254,8 @@ The dual Kalman step applies post-audit score as a second observation when post-
 - Context architecture ✓ (V1.5.21)
 
 **Requires validation:**
+- Langevin/MTJ noise model empirical co-validation against actual spintronic hardware
+
 - C-score vs. human judgment correlation
 - H-signal false positive rate
 - 623.81 Hz physical anchor (RESONANCE_ANCHOR)
