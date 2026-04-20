@@ -1,3 +1,66 @@
+# ARCHITECT — Legacy Repository
+
+> ## This project has been superseded by VECTOR
+>
+> **Current system:** https://github.com/Myth727/VECTOR  
+>
+> If you're arriving here for the first time, start with VECTOR.
+
+---
+
+## Status
+
+ARCHITECT is no longer the active public line.
+
+This repository is being retained as a **legacy reference** documenting an earlier phase of the system’s development.
+
+It is not the current or recommended entry point.
+
+---
+
+## What changed
+
+ARCHITECT evolved into a broader and more structured system now released as **VECTOR**.
+
+The transition reflects a shift from:
+- an isolated coherence/control framework  
+→ to  
+- a more complete system for observability, control, and evaluation of generative processes
+
+All active work now continues under VECTOR.
+
+---
+
+## Where to go
+
+→ https://github.com/Myth727/VECTOR
+
+VECTOR is the current version and will continue to evolve.
+
+---
+
+## What this repository represents
+
+ARCHITECT should be viewed as:
+- an earlier implementation
+- a research and experimentation phase
+- a foundation that informed the current system
+
+It may still be useful for:
+- understanding system evolution  
+- comparing architectural decisions  
+- reviewing earlier approaches  
+
+---
+
+## Direction
+
+This repository is no longer being actively developed.
+
+All updates, improvements, and future work are focused on VECTOR.
+
+→ https://github.com/Myth727/VECTOR
+
 # ARCHITECT — Volatility-Sensitive Correction Engine
 
 ## A real-time control system for generative output stability. Detects instability, measures volatility, and corrects dynamically — while generation is still happening.
